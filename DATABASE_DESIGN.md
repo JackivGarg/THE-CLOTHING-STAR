@@ -1,7 +1,10 @@
-# Logical database design — no migrations have been applied
+# Logical database design and current schema
 
-Use Supabase Postgres. This is a schema contract for a later implementation, not executable SQL. V1 uses ordinary relational indexes and full-text search. Do not install a vector extension or allocate embedding tables until image/text semantic search is approved.
+Use Supabase Postgres. The migrations in `supabase/migrations/` are applied to the separate project. This document keeps the original logical target design; where it differs from the deployed schema, treat it as a future design contract. The deployed subset and private staging state are summarized in `IMPLEMENTATION_STATUS.md`. V1 uses ordinary relational indexes and full-text search. Do not install a vector extension or allocate embedding tables until image/text semantic search is approved.
 
+## Deployed private collection layer
+
+Current migrations create `brands`, `source_configs`, `import_runs`, `staged_catalogue_records`, and `staged_product_page_observations` alongside the empty publishable catalogue tables. `staged_catalogue_records` stores one record per product with source variants and image references nested in `payload`. `staged_product_page_observations` stores append-only rendered-page evidence separately, linked to a source config and import run. Both staging tables are RLS protected, explicitly denied to public roles, and remain private until review. The active deployed schema is authoritative for implementation details.
 ## Types and identity
 
 - Internal identifiers: UUID. External merchant product/variant IDs: text to avoid numeric precision loss.

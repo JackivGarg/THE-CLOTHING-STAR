@@ -8,7 +8,12 @@ Preferred order: approved partner feed/API -> permitted public structured produc
 
 For browser work the user explicitly requested Codex's in-app browser. Follow its skill, inspect the current page, use currently advertised read-only catalogue actions when they cover the operation, and ground clicks/URLs in observed UI. Tool IDs can change between snapshots. Do not add products to carts or proceed through checkout. Saving visible data is not a transaction.
 
-## Historical source results and limits
+## Current source results (2026-11-07)
+
+The saved public-feed snapshots contain 4,781 products, 39,810 variants, and 32,379 image references across nine brands. Eight feed runs reached a short final page; Bonkers is limited to 30 records because robots disallows the query pagination route; Snitch’s bulk endpoint returned HTML, so no bulk records were staged. These are feed-scope results, not proof of full store-catalogue coverage. All feed runs remain `review_required` because source terms and image reuse rights are unresolved.
+
+Ten products were also checked in the in-app browser, one per brand. Compact page facts are appended to private `staged_product_page_observations`; all are pending review. They supplement feed records and do not replace them. The public `products` table remains empty. See `COLLECTION_STATUS.md` for counts and known missing source fields.
+## Earlier audit notes
 
 - Six original stores returned end-of-feed data through /products.json during the earlier audit: JNORSS, WTFlex, Hauntrex, Sagacity, Genrage, Everdion.
 - Bonkers returned structured sample data. Its general robots rules restrict page query URLs for non-Google bots. A later bounded browser catalogue action returned two different 30-product batches. The second action did not visibly advance the URL; this does not establish unattended full-catalogue permission or completeness. Review the supported access route before bulk ingestion.
