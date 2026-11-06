@@ -28,5 +28,10 @@ export function parseProductPage(payload) {
 export function isShortPage(count, pageSize) { return count < pageSize; }
 
 export function stableContentHash(value) {
-  return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  function stripVolatile(input) {
+    if (Array.isArray(input)) return input.map(stripVolatile);
+    if (!input || typeof input !== 'object') return input;
+    return Object.fromEntries(Object.keys(input).sort().filter(k => !['observed_at','content_hash','validation_errors'].includes(k)).map(k => [k, stripVolatile(input[k])]));
+  }
+  return crypto.createHash('sha256').update(JSON.stringify(stripVolatile(value))).digest('hex');
 }

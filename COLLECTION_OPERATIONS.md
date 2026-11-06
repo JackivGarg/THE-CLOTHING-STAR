@@ -27,3 +27,9 @@ Do not store full page text or copy product images into the verification table. 
 - All feed content and image-use permission remain private until source terms and reuse rights are reviewed.
 
 See [COLLECTION_STATUS.md](COLLECTION_STATUS.md) for the current counts and completeness limits, and [INGESTION.md](INGESTION.md) for normalization and publication rules.
+
+## Detail enrichment work in progress
+
+The Bonkers normalizer and Snitch rendered-text parser accept supplied data only; neither is a complete live adapter, job runner, or database importer. Validate current source permissions, actual response shapes, prices and variants on multiple live pages before use. Snitch displayed size choices do not establish availability. No new product data has been imported by these modules. Supabase integration for the next stage remains outstanding.
+
+`prepare:staging` writes a manifest naming the batches of the current snapshot. Consumers must use that manifest; old files remain present and must not be replayed. Product content hashes exclude volatile observation timestamps and validation metadata. Existing DB rows were not changed.
