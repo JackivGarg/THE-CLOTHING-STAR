@@ -1,0 +1,497 @@
+{
+  "schema_version": 1,
+  "purpose": "Acceptance specification with synthetic controlled fixtures. Not real inventory, executed tests, or completed validation.",
+  "baseline_date": "2026-11-07",
+  "fixtures": [
+    {
+      "id": "F1",
+      "name": "Synthetic RaceLine hoodie",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 140000,
+      "shipping_minor": 10000,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "racing",
+      "theme_evidence": "Explicit title: Racing graphic hoodie",
+      "decoration": "printed",
+      "gsm": 380,
+      "material": "80% cotton / 20% polyester",
+      "returns": "store_credit",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F2",
+      "name": "Synthetic size-L racer",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "L",
+      "price_minor": 110000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "racing",
+      "theme_evidence": "Explicit title",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F3",
+      "name": "Synthetic over-budget racer",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 160000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "racing",
+      "theme_evidence": "Explicit title",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F4",
+      "name": "Synthetic Porsche-logo hoodie",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 130000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "automotive",
+      "theme_evidence": "Car-brand logo only; no racing evidence",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F5",
+      "name": "Synthetic unknown-delivery racer",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 130000,
+      "shipping_minor": null,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "racing",
+      "theme_evidence": "Explicit title",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F6",
+      "name": "Synthetic preorder racer",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 150000,
+      "shipping_minor": 0,
+      "cod_fee_minor": 10000,
+      "availability": "in_stock",
+      "ready": false,
+      "theme": "racing",
+      "theme_evidence": "Explicit title",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F7",
+      "name": "Synthetic red hoodie with black print",
+      "category": "hoodie",
+      "colour": "red",
+      "graphic_colour": "black",
+      "size": "M",
+      "price_minor": 135000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "racing",
+      "theme_evidence": "Explicit title",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F8",
+      "name": "Synthetic racing tee",
+      "category": "tee",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 80000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "racing",
+      "theme_evidence": "Explicit title",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F9",
+      "name": "Synthetic charcoal racer",
+      "category": "hoodie",
+      "colour": "charcoal",
+      "size": "M",
+      "price_minor": 120000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "racing",
+      "theme_evidence": "Explicit title",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F10",
+      "name": "Synthetic plain hoodie with racing menu link",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 120000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": null,
+      "site_navigation": "Racing collection",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F11",
+      "name": "Synthetic Midnight hoodie",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 130000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": null,
+      "description": "Comfortable everyday hoodie",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F12",
+      "name": "Synthetic Nirvana hoodie",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 135000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "band",
+      "description": "Band graphic; no racing graphics",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F13",
+      "name": "Synthetic sold-out M racer",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 125000,
+      "shipping_minor": 0,
+      "availability": "sold_out",
+      "ready": true,
+      "theme": "racing",
+      "theme_evidence": "Explicit title",
+      "other_available_size": "L",
+      "freshness": "fresh"
+    },
+    {
+      "id": "F14",
+      "name": "Synthetic stale racer",
+      "category": "hoodie",
+      "colour": "black",
+      "size": "M",
+      "price_minor": 125000,
+      "shipping_minor": 0,
+      "availability": "in_stock",
+      "ready": true,
+      "theme": "racing",
+      "theme_evidence": "Explicit title",
+      "freshness": "older_than_72_hours"
+    }
+  ],
+  "cases": [
+    {
+      "id": "Q01",
+      "input": "black hoodies with racing prints under 1500 size M",
+      "context": {
+        "price_mode": "delivered",
+        "ready_only": true
+      },
+      "must_include": [
+        "F1"
+      ],
+      "must_exclude": [
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "F10",
+        "F11",
+        "F12",
+        "F13",
+        "F14"
+      ],
+      "checks": [
+        "1500 converts to 150000 paise",
+        "M eligibility belongs to the selected black variant",
+        "F1 total = 150000",
+        "No view-based theme inference"
+      ]
+    },
+    {
+      "id": "Q02",
+      "input": "black racing hoodie under 1500 size M",
+      "context": {
+        "price_mode": "item",
+        "ready_only": true
+      },
+      "must_include": [
+        "F1",
+        "F5"
+      ],
+      "must_exclude": [
+        "F3",
+        "F6"
+      ],
+      "checks": [
+        "F5 delivery remains unknown; do not say 1300 delivered"
+      ]
+    },
+    {
+      "id": "Q03",
+      "input": "black racing hoodie under 1500 size M",
+      "context": {
+        "price_mode": "delivered",
+        "include_unverified": true,
+        "ready_only": true
+      },
+      "must_include": [
+        "F1"
+      ],
+      "uncertain_group": [
+        "F5"
+      ],
+      "checks": [
+        "F5 is outside the confirmed within-budget group"
+      ]
+    },
+    {
+      "id": "Q04",
+      "input": "black racing hoodie under 1500 size M refund to original payment",
+      "must_exclude": [
+        "F1"
+      ],
+      "checks": [
+        "Store credit fails original-payment requirement; unknown refund methods also fail"
+      ]
+    },
+    {
+      "id": "Q05",
+      "input": "black cotton-only racing hoodie under 1500 M",
+      "must_exclude": [
+        "F1"
+      ],
+      "checks": [
+        "An 80/20 blend does not meet 100% cotton; cotton-only interpretation shown to shopper"
+      ]
+    },
+    {
+      "id": "Q06",
+      "input": "black racing hoodie 350 gsm or heavier M",
+      "must_include": [
+        "F1"
+      ],
+      "checks": [
+        "A product with absent GSM cannot pass this hard filter"
+      ]
+    },
+    {
+      "id": "Q07",
+      "input": "black racing hoodie M no anime",
+      "checks": [
+        "Exclude actual anime theme; negative anime word is not a positive match"
+      ]
+    },
+    {
+      "id": "Q08",
+      "input": "Porsche 911 hoodie size M",
+      "checks": [
+        "911 is not automatically a budget",
+        "Automotive request need not imply racing"
+      ]
+    },
+    {
+      "id": "Q09",
+      "input": "black hoodie with red print size M",
+      "must_exclude": [
+        "F7"
+      ],
+      "checks": [
+        "Black graphic on red garment does not match the request"
+      ]
+    },
+    {
+      "id": "Q10",
+      "input": "black racing hoodie below 1.5k XXL",
+      "checks": [
+        "1.5k = 150000 paise",
+        "XXL maps to 2XL labels where valid; does not mean M"
+      ]
+    },
+    {
+      "id": "Q11",
+      "input": "black racing hoodie M",
+      "must_exclude": [
+        "F10",
+        "F11",
+        "F12"
+      ],
+      "checks": [
+        "Navigation text excluded",
+        "No evidence means unknown",
+        "Negated racing phrase is not positive evidence"
+      ]
+    },
+    {
+      "id": "Q12",
+      "input": "black racing hoodie M",
+      "must_exclude": [
+        "F13"
+      ],
+      "checks": [
+        "An available L cannot satisfy sold-out M"
+      ]
+    },
+    {
+      "id": "Q13",
+      "input": "black racing hoodie M ready to ship",
+      "must_exclude": [
+        "F6"
+      ],
+      "checks": [
+        "Source available=true does not make preorder ready"
+      ]
+    },
+    {
+      "id": "Q14",
+      "input": "black racing hoodie M",
+      "checks": [
+        "No default grey/charcoal expansion; shopper must choose relaxed colour"
+      ]
+    },
+    {
+      "id": "Q15",
+      "input": "black racing hoodie M no back print",
+      "checks": [
+        "Absent back-print information cannot prove no back print; ask/mark unverified"
+      ]
+    },
+    {
+      "id": "Q16",
+      "input": "racng black hoddie M",
+      "checks": [
+        "Bounded typo fallback can correct theme/category; never changes size/budget"
+      ]
+    },
+    {
+      "id": "S01",
+      "scenario": "Redis lost all keys",
+      "checks": [
+        "Catalogue and import progress survive",
+        "No unauthorised admin/import publish",
+        "Public reads degrade safely"
+      ]
+    },
+    {
+      "id": "S02",
+      "scenario": "Partial source run fails after one page",
+      "checks": [
+        "No absent-product withdrawals",
+        "Unseen records retain original timestamps",
+        "Run complete=false"
+      ]
+    },
+    {
+      "id": "S03",
+      "scenario": "Cache hit after a new promotion/context",
+      "checks": [
+        "Do not reuse new-customer/prepaid quote for an unknown existing/COD shopper",
+        "Source times remain original"
+      ]
+    },
+    {
+      "id": "S04",
+      "scenario": "Same source product observed twice and duplicate-title products exist",
+      "checks": [
+        "Idempotent upsert by store/external ID",
+        "Different merchant IDs not merged merely by title"
+      ]
+    },
+    {
+      "id": "S05",
+      "scenario": "Merchant 1599.00 rupees vs browser amount 159900 paise",
+      "checks": [
+        "Both normalise to 159900 minor units using source configuration",
+        "No magnitude guessing"
+      ]
+    },
+    {
+      "id": "S06",
+      "scenario": "Product and policy page disagree about sale returns",
+      "checks": [
+        "Conflict flag visible",
+        "Cannot pass strict return filter until reviewed"
+      ]
+    },
+    {
+      "id": "S07",
+      "scenario": "Affiliate campaign paused or unknown",
+      "checks": [
+        "Normal merchant link works",
+        "No earnings claim",
+        "Organic ranking unchanged"
+      ]
+    },
+    {
+      "id": "S08",
+      "scenario": "Malicious source image URL/private host or open redirect destination",
+      "checks": [
+        "Rejected by host/protocol validation",
+        "No arbitrary image proxy or URL fetch"
+      ]
+    },
+    {
+      "id": "S09",
+      "scenario": "Two merchants each need 1999 subtotal for free shipping",
+      "checks": [
+        "Do not add 1499 items across brands to unlock either threshold"
+      ]
+    },
+    {
+      "id": "S10",
+      "scenario": "Guest clears site data",
+      "checks": [
+        "Shortlist removal behaviour is clear",
+        "No implied cross-device account persistence"
+      ]
+    },
+    {
+      "id": "S11",
+      "scenario": "Identical gallery front/back views and different colours",
+      "checks": [
+        "One product/colour result per group",
+        "Displayed colour corresponds to quoted selected variant"
+      ]
+    },
+    {
+      "id": "S12",
+      "scenario": "Stale import lease resumes after lease reassignment",
+      "checks": [
+        "Fencing token prevents stale publish",
+        "Redis cache eviction has no effect on lease correctness"
+      ]
+    }
+  ]
+}
