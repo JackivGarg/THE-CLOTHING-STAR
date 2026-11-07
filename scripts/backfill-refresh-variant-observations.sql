@@ -1,4 +1,4 @@
--- Execute only after the companion migration and all three exact imports finish.
+-- Execute only after the companion migration and all four exact imports finish.
 -- Atomic, private, insert-only, and idempotent; never mutates normalized values.
 begin isolation level repeatable read;
 select pg_advisory_xact_lock(hashtextextended('the-clothing-star:variant-observation-backfill', 0));
@@ -10,7 +10,8 @@ create temporary table expected_refresh_runs (
 insert into expected_refresh_runs values
   ('3c12a703-e6c0-4372-aa1f-a5c77f7bc753', 'jnorss', 161, 'jnorss-refresh-1'),
   ('1fe9a237-3afb-4b5f-bffb-cc212ab3545a', 'genrage', 230, 'shopify-allowlist-refresh-1'),
-  ('8d467758-2e30-46f2-affd-05e8cdeba7b9', 'wtflex', 408, 'shopify-allowlist-refresh-1');
+  ('8d467758-2e30-46f2-affd-05e8cdeba7b9', 'wtflex', 408, 'shopify-allowlist-refresh-1'),
+  ('0ae3a759-513c-4bb5-adcb-81a27910cfb3', 'sagacity', 62, 'shopify-allowlist-refresh-1');
 
 -- Refuse partially imported runs, duplicates, mismatched scope or source configs.
 do $$

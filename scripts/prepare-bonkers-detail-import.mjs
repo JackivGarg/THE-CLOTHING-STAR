@@ -3,12 +3,13 @@ import { resolve, dirname, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 import robotsParser from 'robots-parser';
+import { pathToFileURL } from 'node:url';
 import { normalizeBonkersProduct } from './bonkers-normalize.mjs';
 import { stableContentHash } from './collector-utils.mjs';
 
 // Emits one verified chunk for the Supabase operator. It does not write to the DB.
-const [manifestPath, chunkArg] = process.argv.slice(2);
-if (!manifestPath || !/^\d+$/.test(chunkArg ?? '')) throw new Error('Usage: <validated manifest path> <chunk index>');
+export function prepareBonkersDetailImport(manifestPath, chunkArg) {
+if (!manifestPath || !(chunkArg === 'all' || /^\d+$/.test(chunkArg ?? ''))) throw new Error('Usage: <validated manifest path> <chunk index>');
 const dir = dirname(resolve(manifestPath));
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 const rawDir = resolve(dir, '..');
@@ -76,7 +77,7 @@ const size = 10;
 const index = Number(chunkArg);
 const digest = hash(JSON.stringify([raw.started_at, raw.robots_sha256, raw.pages.map(page => page.sha256)]));
 const runId = `${digest.slice(0, 8)}-${digest.slice(8, 12)}-5${digest.slice(13, 16)}-8${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
-process.stdout.write(JSON.stringify({
+return {
   runId, chunks: Math.ceil(rows.length / size), requests: raw.requests, products: rows.length,
   startedAt: raw.started_at, endedAt: raw.finished_at, robotsHash: raw.robots_sha256,
   snapshotDir: `data/catalogue/${basename(rawDir)}`,
@@ -86,5 +87,11 @@ process.stdout.write(JSON.stringify({
     ...(error.status ? { status: error.status } : {}),
     ...(error.retry_after ? { retry_after: error.retry_after } : {})
   })),
-  rows: rows.slice(index * size, (index + 1) * size)
-}));
+  rows: chunkArg === 'all' ? rows : rows.slice(index * size, (index + 1) * size)
+};
+}
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const [manifestPath, chunkArg] = process.argv.slice(2);
+  if (chunkArg === 'all') throw new Error('CLI requires a chunk index');
+  process.stdout.write(JSON.stringify(prepareBonkersDetailImport(manifestPath, chunkArg)));
+}
