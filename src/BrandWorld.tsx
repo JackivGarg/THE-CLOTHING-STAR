@@ -23,16 +23,29 @@ function GarmentPoster({asset}: {asset: WorldAsset}) {
 }
 
 export function BrandWorld({brands=[],onBrandExplore,onBrandInsights,onSearch}:Props){
- const section=useRef<HTMLElement>(null),host=useRef<HTMLDivElement>(null),controller=useRef<WorldControls|null>(null),activeRef=useRef(0),exploreRef=useRef(onBrandExplore);
+ const scrollArea=useRef<HTMLDivElement>(null),host=useRef<HTMLDivElement>(null),controller=useRef<WorldControls|null>(null),activeRef=useRef(0),exploreRef=useRef(onBrandExplore);
  const [active,setActive]=useState(0),[assets,setAssets]=useState<WorldAsset[]>([]),[state,setState]=useState<'loading'|'ready'|'fallback'>('loading'),[assetFailed,setAssetFailed]=useState(false);
  exploreRef.current=onBrandExplore;
  useEffect(()=>{const abort=new AbortController();fetch('/brand-world/manifest.json',{signal:abort.signal}).then(r=>{if(!r.ok)throw Error('No scene manifest');return r.json()}).then(data=>{const list=Array.isArray(data)?data:data.products||data.assets||[];setAssets(list.filter((item:WorldAsset)=>item&&typeof item.brand_slug==='string'&&typeof item.image_url==='string'&&item.image_url.startsWith('/brand-world/')));}).catch(e=>{if(e.name!=='AbortError'){setAssetFailed(true);setState('fallback')}});return()=>abort.abort()},[]);
  useEffect(()=>{
-  if(!section.current||!host.current)return;const wrap=section.current,mount:HTMLDivElement=host.current;let gone=false,cleanup=()=>{};
-  const reduced=matchMedia('(prefers-reduced-motion: reduce)');let exact=0,start=0,range=1;
-  const measure=()=>{start=wrap.getBoundingClientRect().top+window.scrollY;range=wrap.offsetHeight-mount.clientHeight;update()};
-  const update=()=>{exact=exactProgress(window.scrollY,start,range);const next=Math.round(exact);if(next!==activeRef.current){activeRef.current=next;setActive(next)}controller.current?.wake()};
-  const ro=new ResizeObserver(measure);ro.observe(wrap);window.addEventListener('scroll',update,{passive:true});window.addEventListener('resize',measure);window.addEventListener('pageshow',measure);window.addEventListener('hashchange',measure);document.fonts?.ready.then(()=>{if(!gone)measure()});measure();
+  if (!scrollArea.current || !host.current) return;
+  const panel = scrollArea.current, mount = host.current;
+  let gone = false, cleanup = () => {}, exact = 0;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const update = () => {
+    exact = exactProgress(panel.scrollTop, 0, panel.scrollHeight - panel.clientHeight);
+    const next = Math.round(exact);
+    if (next !== activeRef.current) {
+      activeRef.current = next;
+      setActive(next);
+    }
+    panel.style.setProperty('--rail-progress', String(exact / (BRAND_CHAPTERS.length - 1)));
+    controller.current?.wake();
+  };
+  const observer = new ResizeObserver(update);
+  observer.observe(panel);
+  panel.addEventListener('scroll', update, {passive:true});
+  update();
   async function initialize(){
    try{
     const THREE=await import('three');if(gone)return;
@@ -127,9 +140,72 @@ export function BrandWorld({brands=[],onBrandExplore,onBrandInsights,onSearch}:P
    }catch{if(!gone)setState('fallback')}
   }
   if(assets.length)void initialize();
-  return()=>{gone=true;cleanup();ro.disconnect();window.removeEventListener('scroll',update);window.removeEventListener('resize',measure);window.removeEventListener('pageshow',measure);window.removeEventListener('hashchange',measure)};
+  return () => {
+    gone = true;
+    cleanup();
+    observer.disconnect();
+    panel.removeEventListener('scroll', update);
+  };
  },[assets]);
- function go(index:number){const wrap=section.current;if(!wrap||!host.current)return;const y=wrap.getBoundingClientRect().top+scrollY+(wrap.offsetHeight-host.current.clientHeight)*index/(BRAND_CHAPTERS.length-1);window.scrollTo({top:y,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})}
+ function go(index: number) {
+   const panel = scrollArea.current;
+   if (!panel) return;
+   const chapter = Math.max(0, Math.min(BRAND_CHAPTERS.length - 1, index));
+   panel.scrollTo({
+     top: (panel.scrollHeight - panel.clientHeight) * chapter / (BRAND_CHAPTERS.length - 1),
+     behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+   });
+ }
  const chapter=BRAND_CHAPTERS[active],asset=assets.find(item=>item.brand_slug===chapter.slug),brand=brands.find(item=>item.slug===chapter.slug);
- return <section className="brand-world" ref={section} aria-label="Explore independent brands" style={{'--brand-transitions':BRAND_CHAPTERS.length-1} as React.CSSProperties}><div className="brand-world-sticky"><div className="brand-world-canvas" ref={host}/>{state!=='ready'&&<div className="brand-world-poster">{asset?<GarmentPoster asset={asset}/>:<div className="world-poster-label">{chapter.name}<small>{assetFailed?'Photography unavailable':'Loading the collection'}</small></div>}</div>}<div className="brand-world-top"><p>THE INDEPENDENT COLLECTION</p><nav aria-label="Brand chapters">{BRAND_CHAPTERS.map((item,index)=><button key={item.slug} aria-current={active===index?'true':undefined} onClick={()=>go(index)}>{item.name}</button>)}</nav></div><div className="brand-world-caption" aria-live="polite"><p>{String(active+1).padStart(2,'0')} / {String(BRAND_CHAPTERS.length).padStart(2,'0')} <span>{brand?.product_count?.toLocaleString('en-IN')} {brand?.product_count!=null?'collected pieces':''}</span></p><h1>{chapter.name}</h1><p className="world-brand-line">{chapter.line}</p>{asset&&<span className="world-garment-title">{asset.title}</span>}<div className="world-actions"><button onFocus={()=>controller.current?.focus(true)} onBlur={()=>controller.current?.focus(false)} onMouseEnter={()=>controller.current?.focus(true)} onMouseLeave={()=>controller.current?.focus(false)} onClick={()=>onBrandExplore(chapter.slug)}>Explore the brand <span>↗</span></button>{onBrandInsights&&<button onClick={()=>onBrandInsights(chapter.slug)}>Brand radar</button>}</div></div><div className="brand-world-bottom"><button aria-label="Previous brand" disabled={active===0} onClick={()=>go(active-1)}>←</button><span>SCROLL TO EXPLORE <i>↓</i></span><button aria-label="Next brand" disabled={active===BRAND_CHAPTERS.length-1} onClick={()=>go(active+1)}>→</button></div>{onSearch&&<button className="world-search-exit" onClick={onSearch}>Already know your fit? Search the catalogue ↓</button>}<div className="world-progress" aria-hidden="true"><span style={{transform:`scaleX(${(active+1)/BRAND_CHAPTERS.length})`}}/></div></div></section>
+ return (
+   <section className="brand-world" aria-label="Explore independent brands">
+     <div className="rack-heading">
+       <div><p>THE INDEPENDENT COLLECTION</p><h1>The brand rail</h1></div>
+       {onSearch && <button className="rack-search-link" onClick={onSearch}>Find an item ↓</button>}
+     </div>
+     <div className="rack-instructions" id="rack-instructions">
+       <span aria-hidden="true">↕</span> Scroll inside the rail or use the arrows to browse brands.
+     </div>
+     <div className="rack-frame">
+       <div ref={scrollArea} className="rack-scroll" role="region" tabIndex={0}
+         aria-label="Scrollable brand rail" aria-describedby="rack-instructions"
+         onKeyDown={event => {
+           if (event.target !== event.currentTarget) return;
+           if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+             event.preventDefault();
+             go(active + (event.key === 'ArrowRight' ? 1 : -1));
+           }
+         }}>
+         <div className="rack-track" style={{'--brand-transitions':BRAND_CHAPTERS.length-1} as React.CSSProperties}>
+           <div className="brand-world-sticky">
+             <div className="brand-world-canvas" ref={host}/>
+             {state !== 'ready' && <div className="brand-world-poster">
+               {asset ? <GarmentPoster asset={asset}/> : <div className="world-poster-label">{chapter.name}
+                 <small>{assetFailed ? 'Photography unavailable' : 'Loading the collection'}</small>
+               </div>}
+             </div>}
+           </div>
+         </div>
+       </div>
+       <div className="rack-arrows">
+         <button aria-label="Previous brand" disabled={active === 0} onClick={() => go(active - 1)}>←</button>
+         <button aria-label="Next brand" disabled={active === BRAND_CHAPTERS.length - 1} onClick={() => go(active + 1)}>→</button>
+       </div>
+     </div>
+     <div className="rack-caption">
+       <div aria-live="polite">
+         <p className="rack-count">{String(active+1).padStart(2,'0')} / {String(BRAND_CHAPTERS.length).padStart(2,'0')}{brand?.product_count != null && ` · ${brand.product_count.toLocaleString('en-IN')} collected pieces`}</p>
+         <h2>{chapter.name}</h2>
+         <p>{asset?.title ?? chapter.line}</p>
+       </div>
+       <div className="world-actions">
+         <button onFocus={() => controller.current?.focus(true)} onBlur={() => controller.current?.focus(false)} onClick={() => onBrandExplore(chapter.slug)}>Explore catalogue ↗</button>
+         {onBrandInsights && <button onClick={() => onBrandInsights(chapter.slug)}>Brand radar</button>}
+       </div>
+     </div>
+     <nav className="rack-brands" aria-label="Jump to brand">
+       {BRAND_CHAPTERS.map((item,index) => <button key={item.slug} aria-current={active === index ? 'true' : undefined} onClick={() => go(index)}>{item.name}</button>)}
+     </nav>
+   </section>
+ );
 }

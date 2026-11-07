@@ -2,7 +2,7 @@
 
 Travel along one continuous brushed-metal clothing rail, approaching each independent brand's garment before turning toward the next label; the same ivory showroom stays present throughout.
 
-Native page scroll owns the journey. Brand navigation jumps to an authored position in that scroll range; pointer, focus and tap inspect the active garment, and Explore opens the separate catalogue flow.
+The labelled rail panel owns the journey through its native scroll position. Page scroll outside the panel moves the page. Brand buttons and arrows jump to authored positions in the rail, and Explore opens the separate catalogue flow.
 
 ## Visual and geometry ledger
 
@@ -24,4 +24,4 @@ Canvas: showroom -> rail + floor -> seven brand groups -> garment photograph pla
 
 One renderer, one scene, DPR cap 1.5 desktop / 1.25 phone, no shadow map or postprocessing; floor contact is geometry/lighting. Target <90 draw calls and <50k visible triangles; actual renderer counters are available as stage data attributes. Render only when visible and damping/interaction is changing. Lower DPR once after sustained frame times >30ms. Visibility changes reset frame time. Cleanup cancels RAF, disconnects observers/listeners, and disposes all geometry/material/texture/environment/renderer resources. Context loss shows fallback without reloading.
 
-Each scroll transition occupies 36% of the viewport height, bounded to 190–350px. The camera damps toward the native scroll position while the cloth pivots slightly at its collar, then settles. Reduced motion chooses the nearest authored chapter and removes that pivot animation. Native scrolling and the jump to the search form remain available. Browser control was disabled when checking the revised composition. The build, scroll math tests, geometry triangulation and HTTP asset checks passed.
+Each transition occupies 145px of native scroll inside the panel. The camera damps toward that position while the cloth pivots slightly at its collar, then settles. Reduced motion chooses the nearest authored chapter and removes that pivot animation. The panel accepts wheel, touch and keyboard input, and a separate link leads to the search form.

@@ -1,27 +1,105 @@
 export type Variant = { id: string; size: string | null; colour: string | null; price_minor: number; available: boolean | null };
 export type Product = { id: string; brand: string; title: string; category: string; fit: string | null; themes: string[]; theme_evidence: string | null; variants: Variant[]; observed_at: string | null; image_url: string | null; source_url: string | null; synthetic: boolean };
-export type Filters = { brand?: string; category?: string; colour?: string; size?: string; theme?: string; fit?: string; budget?: number; priceMode?: 'item' | 'delivered' };
+export type Filters = { brand?: string; category?: string; colour?: string; size?: string; theme?: string; fit?: string; budget?: number; priceMode?: 'item' | 'delivered'; title?: string };
+export type Sort = 'price-asc' | 'price-desc';
+export const PAGE_SIZE = 5;
+
+const categoryTerms: [string, RegExp][] = [
+  ['hoodie', /\b(?:hoodies?|hooded sweatshirts?)\b/i],
+  ['sweatshirt', /\bsweatshirts?\b/i],
+  ['sweater', /\b(?:sweaters?|pullovers?)\b/i],
+  ['tee', /\b(?:t[- ]?shirts?|tees?)\b/i],
+  ['shirt', /\bshirts?\b/i],
+  ['jeans', /\bjeans?\b/i],
+  ['shorts', /\bshorts?\b/i],
+  ['trousers', /\b(?:pants?|trousers?|joggers?|cargos?)\b/i],
+  ['jacket', /\bjackets?\b/i],
+  ['vest', /\b(?:vests?|tank tops?)\b/i],
+  ['dress', /\bdress(?:es)?\b/i],
+  ['skirt', /\bskirts?\b/i],
+  ['co_ord', /\bco[- ]?ords?\b/i],
+];
+const colourTerms = /\b(black|white|blue|red|green|brown|pink|beige|grey|gray|navy|cream|olive|purple|yellow|orange|maroon|indigo|charcoal)\b/i;
+const sizeTerm = /\b(?:size|waist)\s*[:=-]?\s*(\d?x{1,3}[sl]|[sml]|(?:uk\s*)?\d{1,3}(?:[-–]\d{1,3})?|one size|free size)\b/i;
+const budgetTerm = /(?:\b(?:under|below|within|up to|max(?:imum)?|budget(?: of)?)\s*|₹\s*|\b(?:rs\.?|inr)\s*)\s*(?:(?:₹|rs\.?|inr)\s*)?([\d,]+(?:\.\d{1,2})?)\s*(k)?\b/i;
+const fitTerm = /\b(?:over[- ]?sized)\b/i;
+const themeTerms: [string, RegExp][] = [
+  ['racing', /\b(?:racing|motorsport|grand prix|formula\s*1)\b/i],
+  ['anime', /\banime\b/i],
+  ['floral', /\bfloral\b/i],
+];
+const filler = /\b(?:i|want|need|find|show|me|a|an|the|with|in|for|and|please|some|looking|am|something)\b/gi;
+const remove = (input: string, pattern: RegExp) => input.replace(new RegExp(pattern.source, 'gi'), ' ');
+const sizeKey = (value: string) => value.trim().toUpperCase().replace(/^(XXL|XXXL|XXS)$/, key => key === 'XXL' ? '2XL' : key === 'XXXL' ? '3XL' : '2XS');
+const colourKey = (value: string) => value.trim().toLowerCase().replace(/^gray$/, 'grey');
+
 export function parseQuery(input: string): Filters {
- const q = input.toLowerCase(); const f: Filters = { priceMode: 'delivered' };
- if (/\bhoodie(s)?\b/.test(q)) f.category='hoodie'; else if (/\bsweaters?\b/.test(q)) f.category='sweater'; else if (/\bsweatshirts?\b/.test(q)) f.category='sweatshirt'; else if (/\b(t-?shirts?|tees?)\b/.test(q)) f.category='tee'; else if (/\b(pants?|trousers?)\b/.test(q)) f.category='trousers'; else if (/\bjeans?\b/.test(q)) f.category='jeans'; else if (/\bshorts?\b/.test(q)) f.category='shorts'; else if (/\bjackets?\b/.test(q)) f.category='jacket';
- const c=q.match(/\b(black|white|blue|red|green|brown|pink|beige|grey|gray)\b/); if(c) f.colour=c[1]==='gray'?'grey':c[1];
- const s=q.match(/\bsize\s*(2xl|xxl|xl|xs|s|m|l)\b/i); if(s) f.size=s[1].toUpperCase().replace('XXL','2XL');
- const m=q.match(/(?:under|below|within|budget(?: of)?|₹|rs\.?|inr)\s*₹?\s*([\d,]+(?:\.\d+)?)(k)?\b/i); if(m) f.budget=Math.round(Number(m[1].replaceAll(',',''))*(m[2]?1000:1)*100);
- if (/\boversized\b/.test(q)) f.fit='oversized';
- if (/\b(racing|motorsport|grand prix|formula\s*1)\b/.test(q)) f.theme='racing'; else if (/\banime\b/.test(q)) f.theme='anime'; else if (/\bfloral\b/.test(q)) f.theme='floral';
- return f;
+  const filters: Filters = { priceMode: 'delivered' };
+  const category = categoryTerms.find(([, pattern]) => pattern.test(input));
+  const colour = input.match(colourTerms);
+  const size = input.match(sizeTerm);
+  const budget = input.match(budgetTerm);
+  const theme = themeTerms.find(([, pattern]) => pattern.test(input));
+  if (category) filters.category = category[0];
+  if (colour) filters.colour = colourKey(colour[1]);
+  if (size) filters.size = sizeKey(size[1]);
+  if (budget) filters.budget = Math.round(Number(budget[1].replaceAll(',', '')) * (budget[2] ? 1000 : 1) * 100);
+  if (fitTerm.test(input)) filters.fit = 'oversized';
+  if (theme) filters.theme = theme[0];
+  return filters;
 }
-// Refuse terms we cannot enforce, rather than silently dropping requirements.
+
+// Keep unsupported requirements visible rather than silently broadening a search.
 export function unsupportedQuery(input: string): string[] {
- let rest=input.toLowerCase();
- const patterns=[/\b(?:hoodies?|sweaters?|sweatshirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|shorts?|jackets?)\b/g,/\b(?:black|white|blue|red|green|brown|pink|beige|grey|gray|oversized|racing|motorsport|grand prix|formula\s*1|anime|floral)\b/g,/\bsize\s*(?:2xl|xxl|xl|xs|s|m|l)\b/g,/(?:under|below|within|budget(?: of)?|₹|rs\.?|inr)\s*₹?\s*[\d,]+(?:\.\d+)?k?\b/g,/\b(?:i|want|need|find|show|me|a|an|the|with|in|for|and|please|some|looking|am|looking for)\b/g];
- for(const p of patterns) rest=rest.replace(p,' ');
- return rest.replace(/[^\p{L}\p{N}]+/gu,' ').trim().split(/\s+/).filter(Boolean);
+  let rest = input.toLowerCase();
+  for (const pattern of [budgetTerm, sizeTerm, ...categoryTerms.map(([, term]) => term), colourTerms, fitTerm, ...themeTerms.map(([, term]) => term)]) {
+    rest = remove(rest, pattern);
+  }
+  return rest.replace(filler, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter(Boolean);
 }
-export function search(products: Product[], f: Filters) {
- const matched=products.flatMap(p=>{ if((f.brand && p.brand.toLowerCase()!==f.brand.toLowerCase())||(f.category && p.category!==f.category)||(f.fit && p.fit!==f.fit)||(f.theme && !p.themes.includes(f.theme))) return [];
- const variants=p.variants.filter(v=>v.available===true&&(!f.size||v.size?.toUpperCase().replace('XXL','2XL')===f.size.toUpperCase().replace('XXL','2XL'))&&(!f.colour||v.colour?.toLowerCase()===f.colour.toLowerCase())&&(!f.budget||v.price_minor<=f.budget));
- return variants.length?[{...p,selected_variant:variants.sort((a,b)=>a.price_minor-b.price_minor)[0]}]:[];
- }).sort((a,b)=>a.selected_variant.price_minor-b.selected_variant.price_minor||a.id.localeCompare(b.id)).slice(0,5);
- return {confirmed:f.budget&&f.priceMode!=='item'?[]:matched,unknownDelivery:f.budget&&f.priceMode!=='item'?matched:[]};
+
+export function hasMultipleChoices(input: string): boolean {
+  const counts = [sizeTerm, colourTerms, budgetTerm].map(pattern => [...input.matchAll(new RegExp(pattern.source, 'gi'))].length);
+  let categories = 0;
+  let rest = remove(remove(input, sizeTerm), budgetTerm);
+  for (const [, pattern] of categoryTerms) {
+    if (pattern.test(rest)) {
+      categories++;
+      rest = remove(rest, pattern);
+    }
+  }
+  return categories > 1 || counts.some(count => count > 1) || themeTerms.filter(([, pattern]) => pattern.test(input)).length > 1;
+}
+
+export function search(products: Product[], filters: Filters, page = 1, sort: Sort = 'price-asc') {
+  const tokens = (filters.title?.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
+  const matches = products.flatMap(product => {
+    if ((filters.brand && product.brand.toLowerCase() !== filters.brand.toLowerCase()) ||
+        (filters.category && product.category !== filters.category) ||
+        (filters.fit && product.fit !== filters.fit) ||
+        (filters.theme && !product.themes.includes(filters.theme))) return [];
+    if (tokens.length) {
+      const words = new Set(product.title.toLowerCase().match(/[\p{L}\p{N}]+/gu));
+      if (!tokens.every(token => words.has(token))) return [];
+    }
+    const variant = product.variants.reduce<Variant | undefined>((best, candidate) => {
+      if (candidate.available !== true || !Number.isSafeInteger(candidate.price_minor) || candidate.price_minor < 0 ||
+          (filters.size && (!candidate.size || sizeKey(candidate.size) !== sizeKey(filters.size))) ||
+          (filters.colour && (!candidate.colour || colourKey(candidate.colour) !== colourKey(filters.colour))) ||
+          (filters.budget !== undefined && candidate.price_minor > filters.budget)) return best;
+      return !best || candidate.price_minor < best.price_minor ? candidate : best;
+    }, undefined);
+    return variant ? [{...product, selected_variant: variant}] : [];
+  });
+  const direction = sort === 'price-desc' ? -1 : 1;
+  matches.sort((a,b) => direction * (a.selected_variant.price_minor - b.selected_variant.price_minor) || a.id.localeCompare(b.id));
+  const visible = matches.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const needsDelivery = filters.budget !== undefined && filters.priceMode !== 'item';
+  return {
+    confirmed: needsDelivery ? [] : visible,
+    unknownDelivery: needsDelivery ? visible : [],
+    total: matches.length,
+    page,
+    hasMore: page * PAGE_SIZE < matches.length,
+  };
 }
