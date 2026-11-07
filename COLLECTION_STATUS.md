@@ -60,3 +60,7 @@ A second collection produced 99 validated products, 617 variants and 720 gallery
 The collector preserves merchant tags for audience evidence. In the first 87 detail products, 59 carried the exact Women tag, 30 carried Men and two carried both. Product-type fields were blank. Category/audience hints used for request ordering require separate source evidence before becoming shopper filters.
 
 On the latest continuation, the plugin manager reported Supabase installed and enabled, while its SQL tools were unavailable. Current counts after the interrupted second import remain unverified. The collector now blocks new requests until that completed local batch is reconciled, and retains persistent access/rate-limit restrictions across runs.
+
+### Recovery verified on 7 November 2026
+
+The Supabase connection was restored and the second import was replayed idempotently. All 99 product IDs match the validated manifest, with 617 variants. Its import verification marker is saved locally. Bonkers now has 216 distinct detailed products and 1,355 variants across its feed and detail runs. These cover 213 of 3,468 saved sitemap URLs, leaving 3,255 sitemap candidates awaiting detail collection. The global staged product count is 4,967 and the published count is zero. The preceding interrupted-import paragraph describes the historical connection state.
