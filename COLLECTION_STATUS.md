@@ -1,10 +1,10 @@
 # Collection status
 
-## Later verified progress — 7 November 2026, 05:07 UTC
+## Later verified progress — 7 November 2026, 05:10 UTC
 
-This is an interim snapshot, not a live counter. Supabase has 5,573 distinct detailed products in the private normalized catalogue, including 822 Bonkers products, and 44,658 variants. There are no published products. Separate new staging runs refreshed 161 JNORSS, 230 Genrage and 408 WTFlex product observations; they do not add that many distinct products. Their normalized prices and stock have not been refreshed by those staging imports. Brand images remain source URL references; reuse rights remain under review.
+This is an interim snapshot, not a live counter. Supabase has 5,972 distinct detailed products in the private normalized catalogue, including 1,221 Bonkers products, and 47,050 variants. There are no published products. Separate new staging runs refreshed 161 JNORSS, 230 Genrage and 408 WTFlex product observations; they do not add that many distinct products. Their 4,440 timestamped variant observations are in the private `variant_source_observations` table, pending review; normalized prices and stock have not been refreshed by those staging imports. Brand images remain source URL references; reuse rights remain under review.
 
-Another 399 Bonkers responses have been captured and are being imported. They are not included in the verified counts above. A Bonkers sitemap still provides 3,468 candidates, including aliases and potentially unavailable URLs; no sitewide completion is claimed. Snitch remains discovery-only.
+The 399-product Bonkers batch was imported and verified by merchant ID and content hash. Collection continues. A Bonkers sitemap provides 3,468 candidates, including aliases and potentially unavailable URLs; no sitewide completion is claimed. Snitch remains discovery-only.
 
 The text evidence is pending review. Older `text-evidence-1` evidence contains known false positives and must not power search; `text-evidence-2` remains pending too. Run `scripts/catalogue-quality.sql` against the authorized project for a current distinct-product report.
 
