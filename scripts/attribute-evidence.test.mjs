@@ -103,3 +103,44 @@ test('rejects extended negation, imitation material and generic claims following
   assert.deepEqual(values(rows,'material_composition'),[]);
   assert.deepEqual(values(rows,'gsm'),[]);
 });
+
+test('JNORSS Monza hoodie keeps explicit oversized and racing artwork evidence separate from colour and stock', () => {
+  const rows = extractAttributeEvidence({
+    title:'Monza Horsepower Omen Hoodie', original_product_type:'acid wash hoodie',
+    description_text:'80% Cotton 20% Polyster 380 GSM. Oversized Boxy Fit Hoodie. This acid-wash black hoodie blends vintage streetwear with motorsport energy. The back showcases a circuit outline and racing artwork.',
+    variants:[{size_raw:'S',colour_raw:null,price_minor:149900,available:true}]
+  }, {brand:'jnorss'});
+  assert.deepEqual(values(rows,'fit'),['oversized','boxy']);
+  assert.deepEqual(values(rows,'theme'),['racing']);
+  assert.deepEqual(values(rows,'print_theme'),['racing']);
+  assert.ok(rows.filter(row=>row.attribute_key==='print_theme').every(row=>row.source_field==='description_text' && /racing artwork/i.test(row.excerpt)));
+  assert.equal(rows.some(row=>['colour','color','available'].includes(row.attribute_key)), false);
+});
+
+test('Burger Bae campaign tag is theme evidence only; explicit racing-inspired graphic is print evidence', () => {
+  const generic = extractAttributeEvidence({
+    title:'Celestial : Detroit Baggy Cargo Tracks For Men and Women',
+    source_tags:['Burger Racing Club'],
+    description_text:'Designed with a relaxed, oversized fit, multiple cargo pockets, and lightweight fabric.'
+  },{brand:'burger-bae'});
+  assert.deepEqual(values(generic,'theme'),['racing']);
+  assert.deepEqual(values(generic,'print_theme'),[]);
+  const graphic = extractAttributeEvidence({
+    title:'Too Fast Too Furious Dual tee For Men and Women',
+    description_text:'This oversized tee features a racing-inspired graphic print with striking typography.'
+  },{brand:'burger-bae'});
+  assert.deepEqual(values(graphic,'print_theme'),['racing']);
+});
+
+test('racing print requires explicit product-specific graphic text and rejects negation and styling', () => {
+  for (const description of [
+    'A racing logo adds detail.',
+    'Not a racing print.',
+    'A racing aesthetic without graphic prints.',
+    'Pair it with a racing graphic tee.',
+    'For racing enthusiasts this shirt has a graphic print.',
+    'The racing idea is bold. A graphic print is optional.'
+  ]) assert.deepEqual(values(extractAttributeEvidence({description_text:description}),'print_theme'),[],description);
+  assert.deepEqual(values(extractAttributeEvidence({description_text:'Fit: oversized. Oversized, comfortable fit.'}),'fit'),['oversized']);
+  assert.deepEqual(values(extractAttributeEvidence({description_text:'Not oversized boxy fit.'}),'fit'),[]);
+});

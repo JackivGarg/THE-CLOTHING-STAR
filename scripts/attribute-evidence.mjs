@@ -3,7 +3,7 @@ import { gunzipSync } from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 import { plainTextFromHtml, stableContentHash } from './collector-utils.mjs';
 
-export const ATTRIBUTE_RULE_VERSION = 'text-evidence-2';
+export const ATTRIBUTE_RULE_VERSION = 'text-evidence-3';
 
 const categories = [
   ['hoodie', /\bhoodies?\b/i],
@@ -34,6 +34,7 @@ const materialPattern = /\b(\d{1,3}(?:\.\d+)?)\s*%\s*(?:(?:organic|terry|combed|
 function isNegated(text, index) {
   const before = text.slice(Math.max(0, index - 60), index);
   return /\b(?:(?:not|no|without|unlike|never)\s+(?:an?\s+)?|non[- ])$/i.test(before) ||
+    /\b(?:not|no|without|never)\s+(?:(?:an?|oversized|boxy|relaxed|regular|slim|baggy)\s+){1,2}$/i.test(before) ||
     /\b(?:not|never)\s+(?:made|crafted|composed|constructed|designed)\s+(?:with|of|from|in)\s*$/i.test(before);
 }
 
@@ -140,10 +141,22 @@ export function extractAttributeEvidence(input, options = {}) {
     }
     const racing = /\bracing\b/i.exec(text);
     if (racing && !isNegated(text, racing.index) && !isGenericOrStylingContext(text, racing.index)) add('theme', 'racing', field, kind, text, racing);
+    // A campaign/tag may suggest a theme without establishing what appears on
+    // the garment. Record print evidence separately and only from product text.
+    // A racing logo alone may be embroidered or a badge, so it is not a print.
+    if (kind !== 'tag') {
+      const print = /\bracing(?:[- ](?:inspired|themed|helmet|car|style)){0,2}[ -]+(?:graphics?|prints?|artworks?)\b/i.exec(text);
+      if (print && !isNegated(text, print.index) && !/\b(?:not|no|without|never)\b/i.test(print[0]) && !isGenericOrStylingContext(text, print.index)) {
+        add('print_theme', 'racing', field, kind, text, print);
+      }
+    }
   }
   // Only explicit garment-fit constructions in descriptions qualify; styling advice is excluded.
   for (const [value] of fits) {
-    const match = new RegExp(`\\b(?:fit\\s*[:=-]\\s*${value}|${value}[ -]fit)\\b`, 'i').exec(description);
+    const fitConstruction = value === 'oversized'
+      ? 'oversized(?:[ ,\\-]+(?:boxy|comfortable))?[ -]+fit'
+      : `${value}[ -]fit`;
+    const match = new RegExp(`\\b(?:fit\\s*[:=-]\\s*${value}|${fitConstruction})\\b`, 'i').exec(description);
     if (match && !isNegated(description, match.index) && !isGenericOrStylingContext(description, match.index)) add('fit', value, descriptionField, 'description', description, match);
   }
   return evidence;
