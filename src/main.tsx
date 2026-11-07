@@ -6,14 +6,16 @@ import {Garment} from './Garment';
 import {BrandWorld} from './BrandWorld';
 
 type Variant = {id?: string; size: string | null; colour: string | null; price_minor: number; available?: boolean | null};
-type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean};
+type Audience = 'men' | 'women' | 'unisex';
+type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean; audience?: Audience | null};
 type Results = {mode: string; filters: Record<string, string | number>; confirmed: Product[]; unknownDelivery: Product[]; coverage: string; total: number; page: number; hasMore: boolean};
 type Brand = {slug: string; name: string; product_count?: number};
 type SearchForm = {
-  query: string; queryMode: 'requirements' | 'title'; category: string; brand: string; size: string;
-  colour: string; budget: string; priceMode: 'delivered' | 'item'; sort: 'price-asc' | 'price-desc';
+  query: string; queryMode: 'requirements' | 'title'; audience: Audience | ''; category: string; brand: string; size: string;
+  colour: string; budget: string; priceMode: 'delivered' | 'item'; sort: 'recommended' | 'price-asc' | 'price-desc';
 };
-const initial: SearchForm = {query:'', queryMode:'requirements', category:'', brand:'', size:'', colour:'', budget:'', priceMode:'delivered', sort:'price-asc'};
+const initial: SearchForm = {query:'', queryMode:'requirements', audience:'', category:'', brand:'', size:'', colour:'', budget:'', priceMode:'delivered', sort:'recommended'};
+const audiences = {men:'Men', women:'Women', unisex:'Unisex'} as const;
 const categories: Record<string, string> = {
   hoodie:'Hoodies', tee:'T-shirts', sweatshirt:'Sweatshirts', sweater:'Sweaters', shirt:'Shirts',
   jeans:'Jeans', trousers:'Trousers', shorts:'Shorts', jacket:'Jackets', vest:'Vests',
@@ -38,7 +40,7 @@ function ProductCard({product, added, full, toggle}: {product: Product; added: b
   const variant = product.selected_variant;
   return <article className="product">
     <div className="product-art"><ProductVisual key={product.image_url} product={product}/></div>
-    <div className="product-meta"><span>{product.brand}</span>{product.synthetic && <span>Example</span>}</div>
+    <div className="product-meta"><span>{product.brand}</span>{product.audience && <span>{audiences[product.audience]}</span>}{product.synthetic && <span>Example</span>}</div>
     <h3>{product.title}</h3>
     <p className="product-price">{money(variant.price_minor)} <small>item price</small></p>
     <p className="variant-info">{[variant.size && 'Size ' + variant.size, variant.colour].filter(Boolean).join(' · ') || 'Size and colour unavailable'}</p>
@@ -115,7 +117,7 @@ function App() {
         body:JSON.stringify({
           query:values.query.trim(), queryMode:values.queryMode, page, sort:values.sort,
           filters:{
-            brand:values.brand || undefined, category:values.category || undefined,
+            brand:values.brand || undefined, category:values.category || undefined, audience:values.audience || undefined,
             size:values.size.trim() || undefined, colour:values.colour || undefined,
             budget:values.budget ? Math.round(Number(values.budget) * 100) : undefined,
             priceMode:values.priceMode,
@@ -144,7 +146,7 @@ function App() {
 
   function browseBrand(slug: string) {
     navigate('discover','find-your-fit');
-    void run({...initial, brand:slug});
+    void run({...initial, audience:form.audience, brand:slug});
   }
 
   function toggleFollow(slug: string) {
@@ -166,6 +168,7 @@ function App() {
     if (key === 'budget') return ['Up to ' + money(Number(value)) + (result.filters.priceMode === 'item' ? ' item price' : ' delivered')];
     if (key === 'size') return ['Size ' + value];
     if (key === 'category') return [categories[value] ?? String(value)];
+    if (key === 'audience') return [value === 'unisex' ? 'Unisex' : (audiences[value as Audience] ?? value) + ' + unisex'];
     if (key === 'title') return ['Name: ' + value];
     return [String(value)];
   }) : [];
@@ -194,6 +197,15 @@ function App() {
           <p>Describe what you want, search an item by name, or use the filters on their own.</p>
         </div>
         <form className="finder-form" onSubmit={event => {event.preventDefault(); void run(form);}}>
+          <fieldset className="audience-choice"><legend>Who are you shopping for?</legend>
+            {(['','men','women','unisex'] as const).map(value => <label key={value}>
+              <input type="radio" name="audience" value={value} checked={form.audience === value} onChange={() => update('audience', value)}/>
+              <span>{value ? audiences[value] : 'Anyone'}</span>
+            </label>)}
+            <p>{form.audience === 'unisex' ? 'Shows items the brand labels unisex.' : form.audience
+              ? 'Includes items labelled unisex. Items without a clear label are excluded.'
+              : 'Browse all items, or specify men, women or unisex in your request.'}</p>
+          </fieldset>
           <fieldset className="search-mode"><legend>Search by</legend>
             <label><input type="radio" name="query-mode" checked={form.queryMode === 'requirements'} onChange={() => update('queryMode','requirements')}/> What I want</label>
             <label><input type="radio" name="query-mode" checked={form.queryMode === 'title'} onChange={() => update('queryMode','title')}/> Product name</label>
@@ -228,7 +240,7 @@ function App() {
             }}>Clear search</button>
           </div>
           <div className="search-examples">{['Hoodie under 1500 size M','Jeans size 32','Black T-shirt'].map(query =>
-            <button type="button" key={query} disabled={loading} onClick={() => void run({...initial,query})}>{query}</button>)}</div>
+            <button type="button" key={query} disabled={loading} onClick={() => void run({...initial,audience:form.audience,query})}>{query}</button>)}</div>
         </form>
       </section>
       {(result || loading) && <section id="results" className="results-section" aria-busy={loading} aria-labelledby="results-title">
@@ -237,11 +249,15 @@ function App() {
             {result && <p>{result.coverage}</p>}</div>
           {result && submitted && <div className="results-tools"><button type="button" className="finder-clear" onClick={() => navigate('discover','find-your-fit')}>Edit search ↑</button><label className="budget-control">Sort by
             <select value={submitted.sort} disabled={loading || !!pendingEdits} onChange={event => void run({...submitted, sort:event.target.value as SearchForm['sort']})}>
-              <option value="price-asc">Price: low to high</option><option value="price-desc">Price: high to low</option>
+              <option value="recommended">Recommended</option><option value="price-asc">Price: low to high</option><option value="price-desc">Price: high to low</option>
             </select>
           </label></div>}
         </div>
         {chips.length > 0 && <div className="filter-chips" aria-label="Applied filters">{chips.map((chip,index) => <span key={chip+index}>{chip}</span>)}</div>}
+        {result && submitted?.sort === 'recommended' && result.total > 0 && <details className="ranking-note">
+          <summary>Why these items first?</summary>
+          <p>Every item meets the applied filters. Direct audience and product name matches lead, then items with more recorded details. The first page brings in different brands among equally relevant matches.</p>
+        </details>}
         {pendingEdits && <p className="source-notice">You’ve changed the filters. Search again to update these results.</p>}
         {result?.confirmed.length ? cards(result.confirmed) : null}
         {result?.unknownDelivery.length ? <div className="delivery-group"><h3>Delivery cost unknown</h3>
@@ -250,7 +266,7 @@ function App() {
         </div> : null}
         {loading && <p className="loading-state" role="status">{result ? 'Loading more matches…' : 'Finding matching items…'}</p>}
         {!loading && result?.total === 0 && <div className="empty-state"><h3>No matches for this combination.</h3>
-          <p>Try another size or colour, remove a filter, or change your budget.</p>
+          <p>{result.filters.audience ? 'Audience filters use brand labels. Try Anyone to include items without an audience label, or adjust size, colour or budget.' : 'Try another size or colour, remove a filter, or change your budget.'}</p>
           <button type="button" className="finder-clear" onClick={() => navigate('discover','find-your-fit')}>Edit search ↑</button>
         </div>}
         {error && result && <p role="alert" className="error-message">{error}</p>}

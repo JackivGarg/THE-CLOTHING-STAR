@@ -35,3 +35,25 @@ test('product name results paginate in a stable order and remain delivery altern
   assert.deepEqual(second.unknownDelivery.map(product => product.id), ['item-0']);
   assert.equal(second.hasMore, false);
 });
+
+test('audience eligibility and recommended ordering preserve filters and diversify the first page', () => {
+  const make = (id: string, brand: string, audience: 'women' | 'men' | 'unisex' | null, price_minor: number) => ({
+    ...demo[0], id, brand, audience,
+    variants:[{...demo[0].variants[0], available:true, size:'M', price_minor}],
+  });
+  const products = [
+    make('a','A','women',60000), make('a2','A','women',61000),
+    make('b','B','women',90000), make('c','C','women',100000),
+    make('d','D','women',110000), make('e','E','women',120000),
+    make('shared','F','unisex',45000), make('unknown','G',null,40000), make('men','H','men',35000),
+  ];
+  const filters = {...parseQuery('women’s hoodie size M'), priceMode:'item' as const};
+  assert.deepEqual(unsupportedQuery('women’s hoodie size M'), []);
+  const first = search(products, filters);
+  const next = search(products, filters, 2);
+  assert.equal(first.total,7);
+  assert.deepEqual(first.confirmed.map(item=>item.id), ['a','b','c','d','e']);
+  assert.deepEqual(next.confirmed.map(item=>item.id), ['a2','shared']);
+  assert.equal(search(products, filters, 1, 'price-asc').confirmed[0].id, 'shared');
+  assert.deepEqual(search(products,{audience:'unisex'}).confirmed.map(item=>item.id), ['shared']);
+});

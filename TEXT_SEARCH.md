@@ -53,6 +53,10 @@ No result may be labelled eligible if these constraints were silently relaxed. U
 
 ## Ranking
 
+The local preview accepts Men, Women, Unisex or Anyone. It assigns audience only from explicit merchant tags and audience labels in the product title. Items labelled unisex qualify for either Men or Women. Items with missing or conflicting labels remain available under Anyone. These labels describe how the merchant lists the product.
+
+The Recommended order applies eligibility first. It prefers a direct audience match and an exact product name when requested, then checks whether the matching variant has a recorded size and colour and the product has a photo. Among equally relevant candidates, the first five bring in different brands where possible. The remaining ties use recorded item price and product ID. Explicit price sorting orders by price across all eligible items.
+
 Start with deterministic weighted full-text relevance: title > explicit accepted theme evidence > own tags/collections > description. Add understandable tie-breaks for exact vs related theme, requested fit, cost certainty and source freshness. Within similarly relevant groups use delivered price if known, then a stable product ID. Commission and MRP-discount percentage are not organic relevance signals.
 
 Return at most one initial result per merchant product/colour group; collapse its gallery and size variants. Do not collapse two merchant IDs solely by title. A reviewed product-group relationship may later combine true duplicates.

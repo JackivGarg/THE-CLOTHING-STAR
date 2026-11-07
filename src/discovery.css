@@ -27,6 +27,17 @@
   background: #faf9f4;
 }
 .finder-form > label, .search-mode legend { display: block; font-size: 13px; font-weight: 700; margin-bottom: 7px; }
+.audience-choice { margin: 0 0 22px; border: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.audience-choice legend { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.audience-choice label { position: relative; cursor: pointer; }
+.audience-choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.audience-choice span { display: grid; place-items: center; min-height: 44px; padding: 0 13px; border: 1px solid #b9c3b3; border-radius: 4px; font-size: 13px; }
+.audience-choice input:checked + span { color: white; background: #273b32; border-color: #273b32; }
+.audience-choice input:focus-visible + span { outline: 2px solid #45604a; outline-offset: 2px; }
+.audience-choice p, .ranking-note { width: 100%; margin: 7px 0 0; color: #4d5b4e; font-size: 12px; line-height: 1.5; }
+.ranking-note { margin: 12px 0 20px; }
+.ranking-note summary { cursor: pointer; }
+.ranking-note p { max-width: 60ch; margin: 8px 0 0; }
 .search-mode { margin: 0 0 18px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 17px; border: 0; }
 .search-mode label { display: flex; align-items: center; gap: 5px; min-height: 34px; font-size: 13px; }
 .search-mode input { accent-color: #273b32; }

@@ -40,7 +40,10 @@ app.post('/api/v1/search',async(req,res)=>{
  const filters: Filters = titleSearch ? {title: query.trim() || undefined, priceMode:'delivered'} : parseQuery(query);
  const requested = req.body?.filters || {};
  const page = Number.isSafeInteger(req.body?.page) && req.body.page >= 1 && req.body.page <= 2000 ? req.body.page : 1;
- const sort = req.body?.sort === 'price-desc' ? 'price-desc' : 'price-asc';
+ const sort = req.body?.sort === 'price-desc' || req.body?.sort === 'price-asc' ? req.body.sort : 'recommended';
+ if (requested.audience === 'men' || requested.audience === 'women' || requested.audience === 'unisex') {
+   filters.audience = requested.audience;
+ }
  for(const key of ['category','colour','size','theme','fit'] as const) if(typeof requested[key]==='string'&&requested[key].length<=40) filters[key]=requested[key]||undefined;
  if(typeof requested.brand==='string'&&requested.brand.length<=80){
   if(preview){filters.brand=preview.products.find(p=>(p as Product & {brand_slug:string}).brand_slug===requested.brand)?.brand??requested.brand;}
