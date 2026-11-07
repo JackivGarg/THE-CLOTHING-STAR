@@ -1,7 +1,7 @@
 export type Variant = { id: string; size: string | null; colour: string | null; price_minor: number; available: boolean | null };
 export type Audience = 'men' | 'women' | 'unisex';
-export type Product = { id: string; brand: string; title: string; category: string; fit: string | null; themes: string[]; theme_evidence: string | null; variants: Variant[]; observed_at: string | null; image_url: string | null; source_url: string | null; synthetic: boolean; audience?: Audience | null; audience_evidence?: {audience: Audience; field: 'tag' | 'title'; value: string} | null };
-export type Filters = { brand?: string; audience?: Audience; category?: string; colour?: string; size?: string; theme?: string; fit?: string; budget?: number; priceMode?: 'item' | 'delivered'; title?: string };
+export type Product = { id: string; brand: string; title: string; category: string; fit: string | null; themes: string[]; print_themes?: string[]; theme_evidence: string | null; variants: Variant[]; observed_at: string | null; image_url: string | null; source_url: string | null; synthetic: boolean; audience?: Audience | null; audience_evidence?: {audience: Audience; field: 'tag' | 'title'; value: string} | null };
+export type Filters = { brand?: string; audience?: Audience; category?: string; colour?: string; size?: string; theme?: string; printTheme?: string; fit?: string; budget?: number; priceMode?: 'item' | 'delivered'; title?: string };
 export type Sort = 'recommended' | 'price-asc' | 'price-desc';
 export const PAGE_SIZE = 5;
 
@@ -52,6 +52,7 @@ export function parseQuery(input: string): Filters {
   if (budget) filters.budget = Math.round(Number(budget[1].replaceAll(',', '')) * (budget[2] ? 1000 : 1) * 100);
   if (fitTerm.test(input)) filters.fit = 'oversized';
   if (theme) filters.theme = theme[0];
+  if (theme?.[0] === 'racing' && /\b(?:prints?|graphics?|artworks?)\b/i.test(input)) filters.printTheme = 'racing';
   return filters;
 }
 
@@ -61,6 +62,7 @@ export function unsupportedQuery(input: string): string[] {
   for (const pattern of [budgetTerm, sizeTerm, ...categoryTerms.map(([, term]) => term), audienceTerm, colourTerms, fitTerm, ...themeTerms.map(([, term]) => term)]) {
     rest = remove(rest, pattern);
   }
+  if (parseQuery(input).printTheme) rest = remove(rest, /\b(?:prints?|graphics?|artworks?)\b/i);
   return rest.replace(filler, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter(Boolean);
 }
 
@@ -87,7 +89,8 @@ export function search(products: Product[], filters: Filters, page = 1, sort: So
     if ((filters.brand && product.brand.toLowerCase() !== filters.brand.toLowerCase()) ||
         (filters.category && product.category !== filters.category) ||
         (filters.fit && product.fit !== filters.fit) ||
-        (filters.theme && !product.themes.includes(filters.theme))) return [];
+        (filters.theme && !product.themes.includes(filters.theme)) ||
+        (filters.printTheme && !product.print_themes?.includes(filters.printTheme))) return [];
     const name = phrase ? titleWords(product.title) : [];
     if (tokens.length) {
       const words = new Set(name);

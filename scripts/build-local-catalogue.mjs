@@ -4,6 +4,7 @@ import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 import {previewCategory as category} from './preview-category.mjs';
 import {previewAudience} from './preview-audience.mjs';
+import {extractAttributeEvidence} from './attribute-evidence.mjs';
 const root='data/catalogue';
 const registry=JSON.parse(await fs.readFile('brand-registry.json','utf8'));
 const rows=new Map();
@@ -23,6 +24,6 @@ for(const dir of await fs.readdir(root,{withFileTypes:true})){
  if(ids.length!==m.products||ids.slice().sort().join()!=marker.product_ids.slice().sort().join())throw Error('Verified IDs mismatch');
 }
 function httpsUrl(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null;}}
-const products=[...rows.values()].map(r=>{const images=(r.images??[]).map(im=>({url:httpsUrl(im.src),alt:im.alt??null,source_id:im.id??null,variant_ids:im.variant_ids??[],position:im.position??null})).filter(im=>im.url);return {id:r.brand_slug+':'+r.external_product_id,brand:r.brand,brand_slug:r.brand_slug,title:r.title,category:category(r),...previewAudience(r),fit:null,themes:[],theme_evidence:null,variants:r.variants,observed_at:r.observed_at,image_url:httpsUrl(r.source_featured_image_url)??images[0]?.url??null,images,source_url:r.source_url,synthetic:false};});
+const products=[...rows.values()].map(r=>{const images=(r.images??[]).map(im=>({url:httpsUrl(im.src),alt:im.alt??null,source_id:im.id??null,variant_ids:im.variant_ids??[],position:im.position??null})).filter(im=>im.url);const evidence=extractAttributeEvidence(r,{brand:r.brand_slug});const themes=[...new Set(evidence.filter(e=>e.attribute_key==='theme').map(e=>e.value_text))];const printEvidence=evidence.filter(e=>e.attribute_key==='print_theme');return {id:r.brand_slug+':'+r.external_product_id,brand:r.brand,brand_slug:r.brand_slug,title:r.title,category:category(r),...previewAudience(r),fit:null,themes,print_themes:[...new Set(printEvidence.map(e=>e.value_text))],theme_evidence:printEvidence[0]?.excerpt??null,variants:r.variants,observed_at:r.observed_at,image_url:httpsUrl(r.source_featured_image_url)??images[0]?.url??null,images,source_url:r.source_url,synthetic:false};});
 await fs.writeFile(path.join(root,'local-preview.json'),JSON.stringify({created_at:new Date().toISOString(),products}));
 console.log(JSON.stringify({products:products.length,variants:products.reduce((n,p)=>n+p.variants.length,0)}));

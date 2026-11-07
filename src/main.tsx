@@ -170,6 +170,8 @@ function App() {
     if (key === 'category') return [categories[value] ?? String(value)];
     if (key === 'audience') return [value === 'unisex' ? 'Unisex' : (audiences[value as Audience] ?? value) + ' + unisex'];
     if (key === 'title') return ['Name: ' + value];
+    if (key === 'printTheme') return [String(value) + ' print'];
+    if (key === 'theme' && result.filters.printTheme === value) return [];
     return [String(value)];
   }) : [];
 
