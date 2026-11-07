@@ -1,8 +1,8 @@
 # Collection status
 
-## Later verified progress — 7 November 2026, 05:10 UTC
+## Later verified progress — 7 November 2026, 05:27 UTC
 
-This is an interim snapshot, not a live counter. Supabase has 5,972 distinct detailed products in the private normalized catalogue, including 1,221 Bonkers products, and 47,050 variants. There are no published products. Separate new staging runs refreshed 161 JNORSS, 230 Genrage and 408 WTFlex product observations; they do not add that many distinct products. Their 4,440 timestamped variant observations are in the private `variant_source_observations` table, pending review; normalized prices and stock have not been refreshed by those staging imports. Brand images remain source URL references; reuse rights remain under review.
+This is an interim snapshot, not a live counter. Supabase has 5,972 distinct detailed products in the private normalized catalogue, including 1,221 Bonkers products, and 47,050 variants. There are no published products. Separate staging runs refreshed the observed feeds for JNORSS, Genrage, WTFlex, Sagacity, Everdion, Hauntrex and Powerlook; they do not add that many distinct products. Their 27,050 timestamped variant observations are in the private `variant_source_observations` table, pending review; normalized prices and stock have not been refreshed by those staging imports. Burger Bae has a partial new refresh (220 rows), paused at the user's direction. Brand images remain source URL references; reuse rights remain under review.
 
 The 399-product Bonkers batch was imported and verified by merchant ID and content hash. Collection continues. A Bonkers sitemap provides 3,468 candidates, including aliases and potentially unavailable URLs; no sitewide completion is claimed. Snitch remains discovery-only.
 
