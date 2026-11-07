@@ -14,15 +14,28 @@ const sql=v=>v==null?'null':`'${String(v).replaceAll("'","''")}'`;
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const id=n=>{if(!Number.isSafeInteger(n)||n<1) throw Error('unsafe_or_missing_source_id');return String(n);};
 
+// Do not guess from generic Title, or flatten independent Top/Bottom Size options.
+// All original option names and values are retained in source_options.
+function optionValue(options, allowedNames, validValue) {
+  const matches=Object.entries(options).filter(([name])=>allowedNames.has(name.trim().toLowerCase()));
+  if (!matches.length || matches.some(([,value])=>typeof value!=='string' || !validValue(value.trim()))) return null;
+  const normalized=new Set(matches.map(([,value])=>value.trim().toLowerCase()));
+  return normalized.size===1 ? matches[0][1] : null;
+}
+const sizeOptionNames=new Set(['size','sizes']);
+const colourOptionNames=new Set(['color','colour']);
+const sourceSize=value=>value.length>0 && !/^(?:default title|default|n\/a|none|unknown)$/i.test(value);
+const sourceColour=value=>value.length>0 && !/^(?:default title|default|n\/a|none|unknown)$/i.test(value);
+
 export function mapProduct(p,observedAt,brand='jnorss'){
   const base=source(brand);
   const pid=id(p.id); if(!p.handle || !/^[a-z0-9-]+$/.test(p.handle) || !p.title || !Array.isArray(p.variants) || !p.variants.length) throw Error('invalid_product');
   const tags=Array.isArray(p.tags)?p.tags:(typeof p.tags==='string'?p.tags.split(',').map(x=>x.trim()).filter(Boolean):[]);
   const description=plainTextFromHtml(p.body_html||'')||null;
   const images=(p.images||[]).map((im,i)=>({id:im.id==null?null:id(im.id),src:im.src||null,alt:im.alt||null,position:im.position??i+1,variant_ids:(im.variant_ids||[]).map(id)}));
-  const variants=p.variants.map(v=>{const opts={};for(let i=0;i<(p.options||[]).length;i++){const o=p.options[i], n=typeof o==='string'?o:o?.name;if(n)opts[n]=v[`option${i+1}`]??null;}
+  const variants=p.variants.map(v=>{const opts={};for(let i=0;i<(p.options||[]).length;i++){const o=p.options[i], n=typeof o==='string'?o:o?.name;if(n){if(Object.hasOwn(opts,n))throw Error('duplicate_option_name');opts[n]=v[`option${i+1}`]??null;}}
     const price=decimalToMinor(v.price,'major_decimal');if(price===null || (v.compare_at_price!=null && decimalToMinor(v.compare_at_price,'major_decimal')===null))throw Error('invalid_price');
-    return {external_variant_id:id(v.id),source_options:opts,source_sku:v.sku||null,size_raw:opts.Size??opts.Sizes??opts.SIZE??opts.size??opts['Top Size']??null,colour_raw:opts.Color??opts.Colour??opts.color??opts.colour??null,source_price:v.price,price_minor:price,compare_at_minor:decimalToMinor(v.compare_at_price,'major_decimal'),currency:'INR',available:typeof v.available==='boolean'?v.available:null,preorder:null,source_variant_image_id:v.image_id==null?null:id(v.image_id)};
+    return {external_variant_id:id(v.id),source_options:opts,source_sku:v.sku||null,size_raw:Object.keys(opts).some(k=>/^(?:top|bottom)\s+sizes?$/i.test(k.trim()))?null:optionValue(opts,sizeOptionNames,sourceSize),colour_raw:optionValue(opts,colourOptionNames,sourceColour),source_price:v.price,price_minor:price,compare_at_minor:decimalToMinor(v.compare_at_price,'major_decimal'),currency:'INR',available:typeof v.available==='boolean'?v.available:null,preorder:null,source_variant_image_id:v.image_id==null?null:id(v.image_id)};
   }).sort((a,b)=>a.external_variant_id.localeCompare(b.external_variant_id));
   if(new Set(variants.map(v=>v.external_variant_id)).size!==variants.length)throw Error('duplicate_variant');
   const row={external_product_id:pid,handle:p.handle,title:p.title,description_text:description,original_product_type:p.product_type||null,source_tags:tags,source_url:`${base}/products/${p.handle}`,source_updated_at:p.updated_at||null,fulfilment_status:/pre.?order|coming soon|prelaunch/i.test(`${p.title} ${description||''} ${tags.join(' ')}`)?'preorder':'unknown',images,observed_at:observedAt,variants};

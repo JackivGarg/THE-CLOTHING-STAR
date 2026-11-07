@@ -16,3 +16,28 @@ test('product URLs use the selected allowlisted merchant origin',()=>{
  assert.equal(mapProduct(source,'2026-11-07T00:00:00Z','wtflex').source_url,'https://wtflex.in/products/brick-red-tee');
  assert.throws(()=>mapProduct(source,'2026-11-07T00:00:00Z','unknown'),/unsupported_brand/);
 });
+
+test('maps mixed-case source options conservatively without changing original labels',()=>{
+ const p=mapProduct({...source,options:[{name:'SIze'},{name:'cOLoUr'}],variants:[{...source.variants[0],option1:'XL',option2:'Black'}]},'2026-11-07T00:00:00Z');
+ assert.equal(p.variants[0].size_raw,'XL');assert.equal(p.variants[0].colour_raw,'Black');assert.deepEqual(p.variants[0].source_options,{SIze:'XL',cOLoUr:'Black'});
+});
+test('conflicting aliases and default options remain unknown',()=>{
+ const product=(names,values)=>mapProduct({...source,options:names.map(name=>({name})),variants:[{...source.variants[0],option1:values[0],option2:values[1]}]},'2026-11-07T00:00:00Z').variants[0];
+ assert.equal(product(['Size','SIze'],['S','M']).size_raw,null);
+ assert.equal(product(['Size','SIze'],['S',null]).size_raw,null);
+ assert.equal(product(['Color','colour'],['Black','Red']).colour_raw,null);
+ assert.equal(product(['Size'],['Default Title']).size_raw,null);
+ assert.equal(product(['Size'],['Black']).size_raw,'Black'); // preserves the merchant-provided Size label verbatim
+ assert.equal(product(['Title'],['M']).size_raw,null);
+ assert.equal(product(['Color'],['Default Title']).colour_raw,null);
+ assert.equal(product(['Top Size','Bottom Size'],['S','M']).size_raw,null);
+ assert.deepEqual(product(['Top Size','Bottom Size'],['S','M']).source_options,{'Top Size':'S','Bottom Size':'M'});
+ assert.throws(()=>product(['Size','Size'],['S','M']),/duplicate_option_name/);
+});
+
+test('preserves uncommon explicit source size labels',()=>{
+ for(const label of ['UK 8','30-32','100','Regular Fit']) {
+  const p=mapProduct({...source,options:[{name:'SIze'}],variants:[{...source.variants[0],option1:label}]},'2026-11-07T00:00:00Z');
+  assert.equal(p.variants[0].size_raw,label);assert.equal(p.variants[0].source_options.SIze,label);
+ }
+});
