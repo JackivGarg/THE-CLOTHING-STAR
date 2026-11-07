@@ -1,8 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseQuery,search } from '../server/search';
+import { parseQuery,search,unsupportedQuery } from '../server/search';
 import { demo } from '../server/demo';
 test('parses a concrete request and money correctly',()=>{assert.deepEqual(parseQuery('black hoodies with racing prints under 1.5k size M'),{priceMode:'delivered',category:'hoodie',colour:'black',theme:'racing',budget:150000,size:'M'});});
 test('unknown delivery cannot satisfy a delivered budget',()=>{const result=search(demo,parseQuery('black racing hoodie under 1500 size M'));assert.equal(result.confirmed.length,0);assert.equal(result.unknownDelivery.length,2);});
 test('size and colour must match the same available variant',()=>{const result=search(demo,{category:'hoodie',colour:'black',size:'L',priceMode:'item'});assert.deepEqual(result.confirmed.map(p=>p.id),['sample-3']);});
 test('unavailable stock does not pass',()=>{const p=structuredClone(demo[0]);p.variants[0].available=null;assert.equal(search([p],{size:'M'}).confirmed.length,0);});
+test('maps common garment names to actual catalogue categories',()=>{for(const [query,category] of [['black jeans','jeans'],['shorts','shorts'],['jackets','jacket'],['pants','trousers'],['t-shirt','tee']])assert.equal(parseQuery(query).category,category);});
+test('reports unsupported requirements rather than returning generic matches',()=>{assert.deepEqual(unsupportedQuery('black hoodies with racing prints under 1500'),['prints']);assert.deepEqual(unsupportedQuery('blue jeans size M under 1500'),[]);assert.deepEqual(unsupportedQuery('black leather jacket'),['leather']);});
+test('brand and size aliases filter on the same available variant',()=>{const p=structuredClone(demo[0]);p.variants[0].size='XXL';assert.equal(search([p],{brand:'Studio North',size:'2XL'}).confirmed.length,1);assert.equal(search([p],{brand:'Another Brand',size:'2XL'}).confirmed.length,0);});
