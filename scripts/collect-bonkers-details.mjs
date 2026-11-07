@@ -7,14 +7,14 @@ import { normalizeBonkersProduct } from './bonkers-normalize.mjs';
 import { stableContentHash } from './collector-utils.mjs';
 
 // Explicitly initiated per-run CLI; no database credential or writes.
-// Usage: node scripts/collect-bonkers-details.mjs [--exclude <json-array-of-urls>] [--limit <1..100>]
+// Usage: node scripts/collect-bonkers-details.mjs [--exclude <json-array-of-urls>] [--limit <1..10000>]
 const args = process.argv.slice(2); let exclusionPath = null, cap = 100;
 for (let i=0; i<args.length; i++) {
   if (args[i] === '--exclude' && args[i+1]) exclusionPath = args[++i];
   else if (args[i] === '--limit' && args[i+1]) cap = Number(args[++i]);
-  else throw Error('Usage: collect-bonkers-details.mjs [--exclude <JSON URL array>] [--limit 1..100]');
+  else throw Error('Usage: collect-bonkers-details.mjs [--exclude <JSON URL array>] [--limit 1..10000]');
 }
-if (!Number.isInteger(cap) || cap<1 || cap>100) throw Error('Request limit must be an integer from 1 to 100');
+if (!Number.isInteger(cap) || cap<1 || cap>10000) throw Error('Request limit must be an integer from 1 to 10000');
 const root = path.resolve('data/catalogue');
 const base = 'https://www.bonkerscorner.com';
 const lockPath=path.join(root,'bonkers-detail-domain.lock');

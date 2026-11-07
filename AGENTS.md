@@ -5,7 +5,7 @@
 - Follow the user's latest request first. This folder is an implementation handoff, not an instruction to deploy or provision services immediately.
 - Current approved design: TEXT-FIRST discovery across ten starter brands, later configurable to forty. Image search is explicitly deferred. Do not add upload buttons that imply a working image-search service.
 - Read README.md and the linked designs before implementation. Keep open assumptions visible in OPEN_DECISIONS.md.
-- Write code only when the user proceeds with building. This planning package contains no executable application or database migrations.
+- The user has authorized implementation. This repository now contains executable application code, collectors and database migrations; inspect their actual status before changing them.
 - Prefer reversible local work. Do not contact brands, send email, provision paid resources, change plans, enter contracts, or publish a site without applicable user authorization. Do not ask again for actions already authorized.
 
 ## Product truths

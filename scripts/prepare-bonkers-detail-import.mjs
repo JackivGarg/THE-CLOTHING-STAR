@@ -16,7 +16,8 @@ const raw = JSON.parse(readFileSync(resolve(rawDir, 'manifest.json'), 'utf8'));
 const candidates = JSON.parse(gunzipSync(readFileSync('data/catalogue/sitemap-discovery/bonkers-corner/candidates.json.gz')));
 const candidateUrls = new Set(candidates.map(row => row.source_url));
 const hash = data => createHash('sha256').update(data).digest('hex');
-if (raw.brand !== 'bonkers-corner' || raw.requests > 100 || raw.requests !== manifest.requests ||
+if (raw.brand !== 'bonkers-corner' || !Number.isSafeInteger(raw.max_requests) || raw.max_requests > 10000 ||
+    raw.requests > raw.max_requests || raw.requests !== manifest.requests ||
     manifest.price_unit !== 'minor_integer' || manifest.raw_manifest !== '../manifest.json' ||
     !raw.finished_at || !manifest.finished_at || manifest.products < 1) throw new Error('Invalid run manifest');
 const robotsBytes = readFileSync(resolve(rawDir, 'robots.txt'));
@@ -71,7 +72,7 @@ for (const row of rows) {
   };
 }
 if (rows.length !== manifest.products || rows.reduce((sum, row) => sum + row.variants.length, 0) !== manifest.variants) throw new Error('Manifest totals mismatch');
-const size = 5;
+const size = 10;
 const index = Number(chunkArg);
 const digest = hash(JSON.stringify([raw.started_at, raw.robots_sha256, raw.pages.map(page => page.sha256)]));
 const runId = `${digest.slice(0, 8)}-${digest.slice(8, 12)}-5${digest.slice(13, 16)}-8${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
