@@ -1,12 +1,14 @@
 # Collection status
 
-## Later verified progress — 7 November 2026, 06:09 UTC
+## Later verified progress — 7 November 2026, 06:21 UTC
 
 This is an interim snapshot, not a live counter. Supabase has 8,222 distinct detailed products in the private normalized catalogue, including 3,471 Bonkers products, and 59,844 variants. There are no published products. Separate staging runs refreshed the observed feeds for JNORSS, Genrage, WTFlex, Sagacity, Everdion, Hauntrex and Powerlook; they do not add that many distinct products. Their 27,050 timestamped variant observations are in the private `variant_source_observations` table, pending review; normalized prices and stock have not been refreshed by those staging imports. Burger Bae has a partial new refresh (220 rows), paused at the user's direction. Brand images remain source URL references; reuse rights remain under review.
 
 All 3,468 URLs in the saved Bonkers product sitemap now match detailed staged products; the 3,471 total also retains three feed-only products. A 40-request network interruption was fully recovered and the imported batches were verified by merchant ID and content hash. This establishes coverage of the saved sitemap, not unindexed products or the current catalogue at every later time. The user has dropped Snitch from active collection; its earlier discovery records remain preserved.
 
 The text evidence is pending review. Older `text-evidence-1` evidence contains known false positives and must not power search; `text-evidence-2` and `text-evidence-3` remain pending too. Version 3 separates explicit racing-print evidence from broad racing themes. Run `scripts/catalogue-quality.sql` against the authorized project for a current distinct-product report.
+
+Additional pending evidence records preserve 3,186 explicit product-colour labels, 72 Genrage product-colour labels, 33 Genrage accessory categories and 43 variant-size candidates; they do not overwrite normalized variant colours or sizes. Future allowlisted feed refreshes handle case-insensitive size-option names and preserve independent co-ord options. The default collection and audit commands skip Snitch using its registry flag.
 
 ## Historical baseline — earlier on 7 November 2026
 
