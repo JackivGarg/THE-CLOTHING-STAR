@@ -109,6 +109,7 @@
     {
       "slug": "snitch",
       "name": "Snitch",
+      "collection_enabled": false,
       "base_url": "https://www.snitch.com",
       "market": "IN",
       "expected_currency": "INR",

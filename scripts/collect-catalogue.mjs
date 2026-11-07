@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
 import { decimalToMinor as minor, plainTextFromHtml as htmlText, pageDigest, parseProductPage, isShortPage } from './collector-utils.mjs';
 const require=createRequire(import.meta.url); const robotsParser=require('robots-parser');
-const gzip=promisify(zlib.gzip); const registry=JSON.parse(await fs.readFile('brand-registry.json','utf8'));
+const gzip=promisify(zlib.gzip); const registry=JSON.parse(await fs.readFile('brand-registry.json','utf8')); registry.brands=registry.brands.filter(b=>b.collection_enabled!==false);
 const UA='TheClothingStarCatalogueCollector'; const CAP=100, PAGE_SIZE=250, DELAY=1000; const outDir=path.resolve('data/catalogue'); await fs.mkdir(outDir,{recursive:true});
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function get(url){let res=await fetch(url,{headers:{'user-agent':UA,accept:'application/json,text/plain;q=0.8,*/*;q=0.2'},signal:AbortSignal.timeout(20000),redirect:'follow'});if(res.status===429){let sec=Number(res.headers.get('retry-after'));await wait(Math.min(Math.max(sec*1000||5000,1000),30000));res=await fetch(url,{headers:{'user-agent':UA,accept:'application/json'},signal:AbortSignal.timeout(20000),redirect:'follow'});}return res;}

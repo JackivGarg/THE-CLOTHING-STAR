@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const robotsParser = require('robots-parser');
 const registry = JSON.parse(fs.readFileSync('brand-registry.json','utf8'));
+registry.brands=registry.brands.filter(b=>b.collection_enabled!==false);
 const ua='TheClothingStarCatalogueCollector';
 const results=[]; let cursor=0;
 async function worker(){while(cursor<registry.brands.length){const b=registry.brands[cursor++]; const started=new Date().toISOString(); let row={slug:b.slug,name:b.name,robots_url:b.robots_url,feed_candidate:b.feed_candidate,checked_at:started};try{const r=await fetch(b.robots_url,{headers:{'user-agent':ua},signal:AbortSignal.timeout(15000),redirect:'follow'});row.robots_status=r.status;row.robots_final_url=r.url;if(r.status>=200&&r.status<300){const body=await r.text();row.robots_sha256=require('node:crypto').createHash('sha256').update(body).digest('hex');row.allowed={products_json:robotsParser(b.robots_url,body).isAllowed(b.feed_candidate||new URL('/products.json',b.base_url).href,ua),products_json_page2:robotsParser(b.robots_url,body).isAllowed((b.feed_candidate||new URL('/products.json',b.base_url).href)+'?page=2',ua),collections_all:robotsParser(b.robots_url,body).isAllowed(new URL('/collections/all',b.base_url).href,ua)};fs.writeFileSync(`data/source-audits/${b.slug}-robots.txt`,body);}else row.error='robots response not successful; do not crawl until reviewed';}catch(e){row.error=String(e.message||e)}results.push(row);await new Promise(r=>setTimeout(r,1000));}}
