@@ -33,3 +33,20 @@ See [COLLECTION_STATUS.md](COLLECTION_STATUS.md) for the current counts and comp
 The Bonkers normalizer and Snitch rendered-text parser accept supplied data only; neither is a complete live adapter, job runner, or database importer. Validate current source permissions, actual response shapes, prices and variants on multiple live pages before use. Snitch displayed size choices do not establish availability. No new product data has been imported by these modules. Supabase integration for the next stage remains outstanding.
 
 `prepare:staging` writes a manifest naming the batches of the current snapshot. Consumers must use that manifest; old files remain present and must not be replayed. Product content hashes exclude volatile observation timestamps and validation metadata. Existing DB rows were not changed.
+
+## Bonkers product detail runs
+
+Run `node scripts/collect-bonkers-details.mjs --limit 100` from the repository root. The collector reads the saved sitemap URL set and checks the current robots rules for each product detail route. It schedules candidates across title-based category and audience hints. The hints only determine request order. Keep merchant tags and source options in the staged payload for later classification.
+
+The process uses one local domain lock, spaces requests by at least 1.1 seconds and includes the robots fetch in the request budget. It stops on access restrictions, rate limiting or low disk space. If a process crashes and leaves the lock, inspect the process and the saved manifests before clearing it. A new run must respect any outstanding Retry-After value and the source access rules.
+
+The collector prints its run directory. Inspect its manifest and the files under `validated/`. For an explicit, private Supabase import, use the following commands to generate SQL for the authorized project `cvziesdqhxhahiqladlg`.
+
+```text
+node scripts/prepare-bonkers-detail-import.mjs <validated-manifest> 0
+node scripts/bonkers-detail-import-sql.mjs <validated-manifest> setup
+node scripts/bonkers-detail-import-sql.mjs <validated-manifest> <chunk-index>
+node scripts/bonkers-detail-import-sql.mjs <validated-manifest> finish
+```
+
+The first command reports the number of chunks. Apply setup first, apply each numbered chunk in order starting at zero, then finish. Verify the staged product IDs and source URLs against the manifest. After verification, write `validated/import-verified.json` with `manifest_sha256` for the exact validated manifest bytes, `verified_at` in ISO format and the matching `product_ids` array. A later collector skips only verified imports and existing feed URLs. A JSON array of additional database-matched URLs can be passed via `--exclude`. Retry URLs that did not produce a durable verified record. The original feed and each detail run keep separate scope records.

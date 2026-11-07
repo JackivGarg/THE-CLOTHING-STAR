@@ -50,3 +50,13 @@ The data is useful for text matching on names, descriptions, tags, and original 
 ## Additional sitemap discoveries
 
 On 2026-11-07, the advertised and robots-allowed product sitemaps were collected and imported into the private `staged_product_discoveries` table. Bonkers has 3,468 distinct product URLs, of which 27 match existing staged product URLs. Snitch has 9,995 distinct product URLs; its bulk product feed remains unavailable. These are candidate listings with title, source URL, image URL and source update time. They have no verified price, variants, availability or full product details and must not be counted as fully staged products. All candidates are pending review. Raw compressed sitemap snapshots are in ignored `data/catalogue/sitemap-discovery/`. No existing staging rows were deleted.
+
+## Bonkers detail collection checkpoint
+
+The historical table above describes the original feed run. A separate detail run was verified in Supabase with 87 additional products and 558 variants. At that verification, Bonkers had 117 distinct detailed products and 738 variants. The full staging table held 4,868 records. Bonkers covered 114 of its 3,468 sitemap URLs, with three detailed feed products absent from that sitemap snapshot.
+
+A second collection produced 99 validated products, 617 variants and 720 gallery entries across a varied request ordering. It used 100 requests including robots and recorded zero collection errors. Its import was interrupted, and its final DB count requires reconciliation. Its stable run ID is `14c700dc-3e16-5028-8f69-ba6bb4d0d534`. Its saved manifest is `data/catalogue/bonkers-detail-2026-11-07T04-18-05-970Z-cf11e12e/validated/manifest.json`. Replay its idempotent setup/chunks/finish SQL and verify the exact IDs before creating an import-verified marker or starting further collection.
+
+The collector preserves merchant tags for audience evidence. In the first 87 detail products, 59 carried the exact Women tag, 30 carried Men and two carried both. Product-type fields were blank. Category/audience hints used for request ordering require separate source evidence before becoming shopper filters.
+
+On the latest continuation, the plugin manager reported Supabase installed and enabled, while its SQL tools were unavailable. Current counts after the interrupted second import remain unverified. The collector now blocks new requests until that completed local batch is reconciled, and retains persistent access/rate-limit restrictions across runs.
