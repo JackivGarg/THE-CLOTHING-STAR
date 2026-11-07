@@ -1,5 +1,13 @@
 # Implementation status
 
+## Website update — 7 November 2026
+
+The current catalogue totals and source limits are in COLLECTION_STATUS.md; the older snapshot below is historical. The frontend uses the supplied video as a design reference only. Weekly brand tracking is a future feature and has no fabricated charts or price changes.
+
+Build the local data file with `node scripts/build-local-catalogue.mjs`, then start the API and frontend together with `npm start` and open http://127.0.0.1:5173. The local preview serves 8,222 products / 59,844 variants from saved source observations on this machine; it does not publish Supabase records. Source observations are not guarantees of current merchant price or stock. The user authorized source product photos for the website; 8,216 products have HTTPS image references. No photos were uploaded to an image hosting service.
+
+## Historical implementation snapshot
+
 Last verified: 2026-11-07 IST. The local app is an early text-search prototype; its public demo is not yet backed by the collected records.
 
 ## Completed

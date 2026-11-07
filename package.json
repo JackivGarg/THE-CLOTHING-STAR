@@ -11,7 +11,8 @@
     "audit:sources": "node scripts/audit-robots.cjs",
     "collect:feeds": "node scripts/collect-catalogue.mjs",
     "prepare:staging": "node scripts/prepare-staging.mjs",
-    "balanced:sample": "node scripts/build-balanced-review.mjs"
+    "balanced:sample": "node scripts/build-balanced-review.mjs",
+    "start": "node scripts/dev.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.0",
