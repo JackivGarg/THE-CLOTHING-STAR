@@ -1,0 +1,24 @@
+.brand-world{position:relative;background:#f1f0e9}.brand-world-sticky{position:sticky;top:0;height:100svh;min-height:620px;overflow:hidden;background:#f1f0e9}.brand-world-canvas,.brand-world-poster{position:absolute;inset:0}.brand-world-canvas canvas{display:block;width:100%;height:100%}.brand-world-poster{display:flex;justify-content:center;align-items:center;pointer-events:none}.brand-world-poster img{width:35%;height:52%;object-fit:contain;mix-blend-mode:multiply;margin-top:-8vh}.world-poster-label{text-align:center;font:500 48px 'Space Grotesk',sans-serif;color:#76806b}.world-poster-label small{display:block;font:11px 'DM Sans',sans-serif;margin-top:20px}.brand-world-top{position:absolute;top:32px;left:5%;right:5%;pointer-events:none;display:flex;justify-content:space-between;gap:25px;align-items:start}.brand-world-top>p{font-size:8px;letter-spacing:.13em;color:#878b7d;white-space:nowrap}.brand-world-top nav{pointer-events:auto;display:flex;gap:18px;flex-wrap:wrap;justify-content:end}.brand-world-top nav button{font-size:9px;background:none;border:0;padding:0 0 6px;color:#9b9e93}.brand-world-top nav button[aria-current]{color:#374230;border-bottom:1px solid #7d8970}.brand-world-caption{position:absolute;bottom:13vh;left:50%;transform:translateX(-50%);width:min(90%,650px);text-align:center;pointer-events:none}.brand-world-caption>p:first-child{font-size:8px;letter-spacing:.1em;color:#8c9181;margin-bottom:10px}.brand-world-caption>p:first-child span{margin-left:15px}.brand-world-caption h1{font-size:30px;font-weight:500;margin:0 0 8px;letter-spacing:-.025em}.brand-world-caption .world-brand-line{font-size:11px;color:#7b8370;margin:0 0 10px}.world-garment-title{font-size:8px;color:#a1a592;display:block;margin-bottom:16px}.world-actions{display:flex;gap:14px;justify-content:center;pointer-events:auto}.world-actions button{font-size:9px;border:1px solid #afb7a2;border-radius:25px;background:#f1f0e9d9;padding:10px 17px;color:#4d5b40;min-height:40px}.world-actions button:hover{background:#dfe5d5}.world-actions button span{margin-left:20px}.brand-world-bottom{position:absolute;bottom:5vh;left:5%;right:5%;display:flex;align-items:center;justify-content:space-between}.brand-world-bottom button{height:44px;width:44px;display:grid;place-items:center;border:1px solid #bdc4af;border-radius:50%;color:#657356;background:transparent;font-size:17px}.brand-world-bottom>span{font-size:7px;letter-spacing:.14em;color:#929b86}.brand-world-bottom i{font-style:normal;margin-left:8px}.world-search-exit{position:absolute;left:50%;transform:translateX(-50%);bottom:1.6vh;background:none;border:0;color:#8b957e;font-size:9px;white-space:nowrap;padding:10px}.world-progress{position:absolute;height:2px;bottom:0;left:0;right:0;background:#e0e2d5}.world-progress span{display:block;transform-origin:left;height:2px;background:#77876a;transition:transform .25s}.brand-world button:focus-visible{outline:2px solid #647a4d;outline-offset:5px}.brand-world button:disabled{opacity:.25;cursor:default}@media(max-width:750px){.brand-world-sticky{min-height:600px}.brand-world-top{top:20px;display:block}.brand-world-top>p{font-size:7px;margin-bottom:15px}.brand-world-top nav{justify-content:flex-start;gap:13px}.brand-world-top nav button{font-size:8px}.brand-world-caption{bottom:14vh}.brand-world-caption h1{font-size:27px}.brand-world-caption .world-brand-line{font-size:10px}.brand-world-caption>p:first-child{font-size:7px}.world-garment-title{font-size:7px}.brand-world-poster img{width:70%;height:42%;margin-top:-10vh}.brand-world-bottom{bottom:5vh}.world-search-exit{font-size:8px}.world-actions button{font-size:9px;min-height:44px}.world-poster-label{font-size:35px}}
+@media(prefers-reduced-motion:reduce){.world-progress span{transition:none}}
+
+.brand-world {
+  height: calc(100svh + var(--brand-transitions) * clamp(190px, 36svh, 350px));
+}
+.brand-world-sticky { min-height: 0; }
+.world-poster-garment { width: min(56%, 440px); height: 52%; margin-top: -15svh; }
+.brand-world-caption { bottom: 13svh; }
+.world-actions button { min-height: 44px; color: #374230; }
+.brand-world-top nav button { min-height: 28px; padding: 5px 0; color: #626959; }
+.world-search-exit { bottom: 1svh; color: #536247; }
+.brand-world-bottom { bottom: 4svh; pointer-events: none; }
+.brand-world-bottom button { pointer-events: auto; }
+@media (max-width: 480px) {
+  .world-poster-garment { width: 80%; height: 49%; }
+  .brand-world-caption { bottom: 14svh; }
+  .brand-world-top nav { gap: 4px 14px; }
+}
+@media (max-height: 650px) {
+  .brand-world-caption { bottom: 12svh; }
+  .brand-world-caption .world-brand-line { display: none; }
+  .world-garment-title { margin-bottom: 9px; }
+}
