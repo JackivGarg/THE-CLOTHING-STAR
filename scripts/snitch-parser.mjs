@@ -15,6 +15,9 @@ export function parseSnitchRenderedText(sourceUrl, text, observedAt = new Date()
   const [rupees, fraction = ''] = priceText.split('.');
   const priceMinor = Number(rupees) * 100 + Number(fraction.padEnd(2, '0'));
   if (!Number.isSafeInteger(priceMinor)) return { ok: false, error: 'invalid_price' };
+  const compareMatch = lines[priceIndex + 1]?.match(/^₹\s*([\d,]+)(?:\.(\d{1,2}))?$/);
+  const compareValue = compareMatch ? Number(compareMatch[1].replace(/,/g, '')) * 100 + Number((compareMatch[2] || '').padEnd(2, '0')) : null;
+  const compareAtMinor = Number.isSafeInteger(compareValue) ? compareValue : null;
   const colorIndex = lines.findIndex(line => /^Selected Colou?r$/i.test(line));
   let color = colorIndex < 0 ? null : lines[colorIndex + 1];
   if (color === '·' || color === '•') color = lines[colorIndex + 2];
@@ -31,7 +34,7 @@ export function parseSnitchRenderedText(sourceUrl, text, observedAt = new Date()
   return { ok: true, product: {
     source_url: url.href, title: lines[0], external_product_id: null,
     observed_at: observedAt, source_kind: 'rendered_page', content_use_status: 'unknown',
-    current_price_minor: priceMinor, currency: 'INR', selected_color: color || null,
+    current_price_minor: priceMinor, compare_at_minor: compareAtMinor, currency: 'INR', selected_color: color || null,
     displayed_sizes: [...new Set(sizes)], merchant_sku: skuLine?.replace(/^SKU\s*:\s*/i, '') || null,
     description_text: detailLines.length ? detailLines.join('\n') : null,
     availability: null, variants: null, images: null,
