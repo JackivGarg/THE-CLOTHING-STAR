@@ -1,12 +1,12 @@
 # Collection status
 
-## Later verified progress — 7 November 2026, 05:36 UTC
+## Later verified progress — 7 November 2026, 06:09 UTC
 
-This is an interim snapshot, not a live counter. Supabase has 6,971 distinct detailed products in the private normalized catalogue, including 2,220 Bonkers products, and 52,888 variants. There are no published products. Separate staging runs refreshed the observed feeds for JNORSS, Genrage, WTFlex, Sagacity, Everdion, Hauntrex and Powerlook; they do not add that many distinct products. Their 27,050 timestamped variant observations are in the private `variant_source_observations` table, pending review; normalized prices and stock have not been refreshed by those staging imports. Burger Bae has a partial new refresh (220 rows), paused at the user's direction. Brand images remain source URL references; reuse rights remain under review.
+This is an interim snapshot, not a live counter. Supabase has 8,222 distinct detailed products in the private normalized catalogue, including 3,471 Bonkers products, and 59,844 variants. There are no published products. Separate staging runs refreshed the observed feeds for JNORSS, Genrage, WTFlex, Sagacity, Everdion, Hauntrex and Powerlook; they do not add that many distinct products. Their 27,050 timestamped variant observations are in the private `variant_source_observations` table, pending review; normalized prices and stock have not been refreshed by those staging imports. Burger Bae has a partial new refresh (220 rows), paused at the user's direction. Brand images remain source URL references; reuse rights remain under review.
 
-The 399-product and subsequent 999-product Bonkers batches were imported and verified by merchant ID and content hash. Collection continues. A Bonkers sitemap provides 3,468 candidates, including aliases and potentially unavailable URLs; no sitewide completion is claimed. Snitch remains discovery-only.
+All 3,468 URLs in the saved Bonkers product sitemap now match detailed staged products; the 3,471 total also retains three feed-only products. A 40-request network interruption was fully recovered and the imported batches were verified by merchant ID and content hash. This establishes coverage of the saved sitemap, not unindexed products or the current catalogue at every later time. Snitch remains discovery-only.
 
-The text evidence is pending review. Older `text-evidence-1` evidence contains known false positives and must not power search; `text-evidence-2` remains pending too. Run `scripts/catalogue-quality.sql` against the authorized project for a current distinct-product report.
+The text evidence is pending review. Older `text-evidence-1` evidence contains known false positives and must not power search; `text-evidence-2` and `text-evidence-3` remain pending too. Version 3 separates explicit racing-print evidence from broad racing themes. Run `scripts/catalogue-quality.sql` against the authorized project for a current distinct-product report.
 
 ## Historical baseline — earlier on 7 November 2026
 
