@@ -1,5 +1,17 @@
 # Collection status
 
+## Later verified progress — 7 November 2026, 05:07 UTC
+
+This is an interim snapshot, not a live counter. Supabase has 5,573 distinct detailed products in the private normalized catalogue, including 822 Bonkers products, and 44,658 variants. There are no published products. Separate new staging runs refreshed 161 JNORSS, 230 Genrage and 408 WTFlex product observations; they do not add that many distinct products. Their normalized prices and stock have not been refreshed by those staging imports. Brand images remain source URL references; reuse rights remain under review.
+
+Another 399 Bonkers responses have been captured and are being imported. They are not included in the verified counts above. A Bonkers sitemap still provides 3,468 candidates, including aliases and potentially unavailable URLs; no sitewide completion is claimed. Snitch remains discovery-only.
+
+The text evidence is pending review. Older `text-evidence-1` evidence contains known false positives and must not power search; `text-evidence-2` remains pending too. Run `scripts/catalogue-quality.sql` against the authorized project for a current distinct-product report.
+
+## Historical baseline — earlier on 7 November 2026
+
+The following section records the earlier snapshot and is not the current database status.
+
 Last verified: 2026-11-07 IST. The private Supabase catalogue holds 4,781 staged product records across the ten registered brands. Each staged product payload keeps its source variants and image references nested with the product. No staged rows were deleted or trimmed during balancing or page verification.
 
 | Brand | Products staged | Variants | Image references | Feed result |
