@@ -6,7 +6,7 @@ import robotsParser from 'robots-parser';
 import { decimalToMinor, plainTextFromHtml, stableContentHash, pageDigest } from './collector-utils.mjs';
 
 // Explicit allowlist only. Run directories are never reused; no database access.
-const sources=Object.freeze({jnorss:'https://www.jnorss.in',genrage:'https://genrage.com',wtflex:'https://wtflex.in',sagacity:'https://thesagacity.in'});
+const sources=Object.freeze({jnorss:'https://www.jnorss.in',genrage:'https://genrage.com',wtflex:'https://wtflex.in',sagacity:'https://thesagacity.in',hauntrex:'https://hauntrex.com',everdion:'https://everdion.com',powerlook:'https://www.powerlook.in','burger-bae':'https://www.burgerbaeclothing.com'});
 const ua='TheClothingStarCatalogueCollector';
 function source(brand){if(!Object.hasOwn(sources,brand))throw Error('unsupported_brand');return sources[brand];}
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
@@ -29,7 +29,7 @@ const sourceColour=value=>value.length>0 && !/^(?:default title|default|n\/a|non
 
 export function mapProduct(p,observedAt,brand='jnorss'){
   const base=source(brand);
-  const pid=id(p.id); if(!p.handle || !/^[a-z0-9-]+$/.test(p.handle) || !p.title || !Array.isArray(p.variants) || !p.variants.length) throw Error('invalid_product');
+  const pid=id(p.id); if(typeof p.handle !== 'string' || !p.handle || p.handle === '.' || p.handle === '..' || /[\/\\\u0000-\u001f\u007f]/.test(p.handle) || !p.title || !Array.isArray(p.variants) || !p.variants.length) throw Error('invalid_product');
   const tags=Array.isArray(p.tags)?p.tags:(typeof p.tags==='string'?p.tags.split(',').map(x=>x.trim()).filter(Boolean):[]);
   const description=plainTextFromHtml(p.body_html||'')||null;
   const images=(p.images||[]).map((im,i)=>({id:im.id==null?null:id(im.id),src:im.src||null,alt:im.alt||null,position:im.position??i+1,variant_ids:(im.variant_ids||[]).map(id)}));
@@ -38,7 +38,7 @@ export function mapProduct(p,observedAt,brand='jnorss'){
     return {external_variant_id:id(v.id),source_options:opts,source_sku:v.sku||null,size_raw:Object.keys(opts).some(k=>/^(?:top|bottom)\s+sizes?$/i.test(k.trim()))?null:optionValue(opts,sizeOptionNames,sourceSize),colour_raw:optionValue(opts,colourOptionNames,sourceColour),source_price:v.price,price_minor:price,compare_at_minor:decimalToMinor(v.compare_at_price,'major_decimal'),currency:'INR',available:typeof v.available==='boolean'?v.available:null,preorder:null,source_variant_image_id:v.image_id==null?null:id(v.image_id)};
   }).sort((a,b)=>a.external_variant_id.localeCompare(b.external_variant_id));
   if(new Set(variants.map(v=>v.external_variant_id)).size!==variants.length)throw Error('duplicate_variant');
-  const row={external_product_id:pid,handle:p.handle,title:p.title,description_text:description,original_product_type:p.product_type||null,source_tags:tags,source_url:`${base}/products/${p.handle}`,source_updated_at:p.updated_at||null,fulfilment_status:/pre.?order|coming soon|prelaunch/i.test(`${p.title} ${description||''} ${tags.join(' ')}`)?'preorder':'unknown',images,observed_at:observedAt,variants};
+  const row={external_product_id:pid,handle:p.handle,title:p.title,description_text:description,original_product_type:p.product_type||null,source_tags:tags,source_url:`${base}/products/${encodeURIComponent(p.handle)}`,source_updated_at:p.updated_at||null,fulfilment_status:/pre.?order|coming soon|prelaunch/i.test(`${p.title} ${description||''} ${tags.join(' ')}`)?'preorder':'unknown',images,observed_at:observedAt,variants};
   row.content_hash=stableContentHash(row);row.validation_errors=[];return row;
 }
 
@@ -62,4 +62,4 @@ async function prepare(dir){
   await fs.writeFile(path.join(output,'setup.sql'),setup,{flag:'wx'});let files=[];for(let i=0;i<rows.length;i+=20){const f=`batch-${String(i/20+1).padStart(3,'0')}.sql`,chunk=rows.slice(i,i+20);const q=`with input as (select value p from jsonb_array_elements(${sql(JSON.stringify(chunk))}::jsonb)), target as (select r.id,r.source_config_id from public.import_runs r join public.source_configs c on c.id=r.source_config_id join public.brands b on b.id=c.brand_id where r.id=${run} and b.slug=${sql(m.brand)} and c.scope_key='catalogue') insert into public.staged_catalogue_records(source_config_id,import_run_id,external_product_id,external_variant_id,payload,content_hash,observed_at) select t.source_config_id,t.id,p->>'external_product_id','__PRODUCT__',p,p->>'content_hash',(p->>'observed_at')::timestamptz from input cross join target t on conflict(import_run_id,external_product_id,external_variant_id) do nothing;`;await fs.writeFile(path.join(output,f),q,{flag:'wx'});files.push(f);}
   await fs.writeFile(path.join(output,'finish.sql'),`update public.import_runs r set staged=(select count(*) from public.staged_catalogue_records s where s.import_run_id=r.id) where r.id=${run} returning id,staged;`,{flag:'wx'});await fs.writeFile(path.join(output,'manifest.json'),JSON.stringify({run_id:m.run_id,source_manifest_sha256:hash(await fs.readFile(path.join(dir,'manifest.json'))),products:rows.length,variants:vids.size,files},null,2),{flag:'wx'});console.log(JSON.stringify({run_id:m.run_id,products:rows.length,variants:vids.size,batches:files.length,output}));
 }
-if(process.argv[1] && path.resolve(process.argv[1])===path.resolve(new URL(import.meta.url).pathname.replace(/^\/(?:([A-Za-z]:))/, '$1'))){const [cmd,arg]=process.argv.slice(2);if(cmd==='capture')await capture(arg||'jnorss');else if(cmd==='prepare'&&arg)await prepare(arg);else throw Error('Usage: node scripts/jnorss-refresh.mjs capture [jnorss|genrage|wtflex|sagacity] | prepare <run-dir>');}
+if(process.argv[1] && path.resolve(process.argv[1])===path.resolve(new URL(import.meta.url).pathname.replace(/^\/(?:([A-Za-z]:))/, '$1'))){const [cmd,arg]=process.argv.slice(2);if(cmd==='capture')await capture(arg||'jnorss');else if(cmd==='prepare'&&arg)await prepare(arg);else throw Error('Usage: node scripts/jnorss-refresh.mjs capture [jnorss|genrage|wtflex|sagacity|hauntrex|everdion|powerlook|burger-bae] | prepare <run-dir>');}

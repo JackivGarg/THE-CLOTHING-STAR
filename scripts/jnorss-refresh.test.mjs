@@ -14,6 +14,10 @@ test('hash ignores observation time; invalid source IDs and money are rejected',
 test('product URLs use the selected allowlisted merchant origin',()=>{
  assert.equal(mapProduct(source,'2026-11-07T00:00:00Z','genrage').source_url,'https://genrage.com/products/brick-red-tee');
  assert.equal(mapProduct(source,'2026-11-07T00:00:00Z','wtflex').source_url,'https://wtflex.in/products/brick-red-tee');
+ assert.equal(mapProduct(source,'2026-11-07T00:00:00Z','hauntrex').source_url,'https://hauntrex.com/products/brick-red-tee');
+ assert.equal(mapProduct(source,'2026-11-07T00:00:00Z','everdion').source_url,'https://everdion.com/products/brick-red-tee');
+ assert.equal(mapProduct(source,'2026-11-07T00:00:00Z','powerlook').source_url,'https://www.powerlook.in/products/brick-red-tee');
+ assert.equal(mapProduct(source,'2026-11-07T00:00:00Z','burger-bae').source_url,'https://www.burgerbaeclothing.com/products/brick-red-tee');
  assert.throws(()=>mapProduct(source,'2026-11-07T00:00:00Z','unknown'),/unsupported_brand/);
 });
 
@@ -39,5 +43,14 @@ test('preserves uncommon explicit source size labels',()=>{
  for(const label of ['UK 8','30-32','100','Regular Fit']) {
   const p=mapProduct({...source,options:[{name:'SIze'}],variants:[{...source.variants[0],option1:label}]},'2026-11-07T00:00:00Z');
   assert.equal(p.variants[0].size_raw,label);assert.equal(p.variants[0].source_options.SIze,label);
+ }
+});
+
+test('encodes Unicode and underscores as one product URL segment', () => {
+ const item = mapProduct({...source,handle:'tek_air™-pants'},'2026-11-18T00:00:00Z','everdion');
+ assert.equal(item.handle,'tek_air™-pants');
+ assert.equal(item.source_url,'https://everdion.com/products/tek_air%E2%84%A2-pants');
+ for (const handle of ['../secret','a/b','a\\b','..']) {
+   assert.throws(() => mapProduct({...source,handle},'2026-11-18T00:00:00Z','everdion'), /invalid_product/);
  }
 });

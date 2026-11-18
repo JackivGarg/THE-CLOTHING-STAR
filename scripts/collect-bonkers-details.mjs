@@ -7,12 +7,13 @@ import { normalizeBonkersProduct } from './bonkers-normalize.mjs';
 import { stableContentHash } from './collector-utils.mjs';
 
 // Explicitly initiated per-run CLI; no database credential or writes.
-// Usage: node scripts/collect-bonkers-details.mjs [--exclude <json-array-of-urls>] [--limit <1..10000>]
-const args = process.argv.slice(2); let exclusionPath = null, cap = 100;
+// Usage: node scripts/collect-bonkers-details.mjs [--refresh] [--exclude <json-array-of-urls>] [--limit <1..10000>]
+const args = process.argv.slice(2); let exclusionPath = null, cap = 100, refresh = false;
 for (let i=0; i<args.length; i++) {
-  if (args[i] === '--exclude' && args[i+1]) exclusionPath = args[++i];
+  if (args[i] === '--refresh') refresh = true;
+  else if (args[i] === '--exclude' && args[i+1]) exclusionPath = args[++i];
   else if (args[i] === '--limit' && args[i+1]) cap = Number(args[++i]);
-  else throw Error('Usage: collect-bonkers-details.mjs [--exclude <JSON URL array>] [--limit 1..10000]');
+  else throw Error('Usage: collect-bonkers-details.mjs [--refresh] [--exclude <JSON URL array>] [--limit 1..10000]');
 }
 if (!Number.isInteger(cap) || cap<1 || cap>10000) throw Error('Request limit must be an integer from 1 to 10000');
 const root = path.resolve('data/catalogue');
@@ -37,7 +38,7 @@ if (exclusionPath) {
 }
 // Existing feed snapshot has already been staged; failures/partial prior runs remain eligible.
 const original=JSON.parse(zlib.gunzipSync(await fs.readFile(path.join(root,'bonkers-corner/catalogue.snapshot.json.gz'))).toString('utf8'));
-for (const row of original.products || []) if(validUrl(row.source_url)) skip.add(validUrl(row.source_url));
+for (const row of original.products || []) if(!refresh && validUrl(row.source_url)) skip.add(validUrl(row.source_url));
 // Count only source URLs in completed validated manifests; never treat a failed response as success.
 for (const d of await fs.readdir(root,{withFileTypes:true})) {
   if (!d.isDirectory() || !/^(bonkers-bounded-|bonkers-detail-)/.test(d.name)) continue;
@@ -55,7 +56,7 @@ for (const d of await fs.readdir(root,{withFileTypes:true})) {
     for(const row of rows) { if(!validUrl(row.source_url) || !row.external_product_id || row.validation_errors?.length)throw Error('Invalid prior record'); priorUrls.push(validUrl(row.source_url)); priorIds.push(row.external_product_id); count++; }
   }
   if(count!==m.products || !m.finished_at || new Set(priorIds).size!==count || marker.product_ids.length!==count || [...marker.product_ids].sort().join('\n')!==[...priorIds].sort().join('\n')) throw Error(`Prior imported manifest mismatch: ${d.name}`);
-  priorUrls.forEach(url=>skip.add(url));
+  if (!refresh) priorUrls.forEach(url=>skip.add(url));
 }
 // Title hints determine scheduling only; no category/gender inference is written to product data.
 function bucket(title) {
@@ -73,7 +74,7 @@ const cooldownPath=path.join(root,'bonkers-detail-domain-cooldown.json');
 try { const cooldown=JSON.parse(await fs.readFile(cooldownPath,'utf8')); if(cooldown.manual_review_required) throw Error('Domain access restricted; operator review required before collection'); if(!Number.isFinite(Date.parse(cooldown.until))) throw Error('Invalid domain cooldown; operator review required'); if(Date.parse(cooldown.until)>Date.now()) throw Error(`Domain cooldown active until ${cooldown.until}`); } catch(e) {if(e.code!=='ENOENT')throw e;}
 const runDir=path.join(root,`bonkers-detail-${new Date().toISOString().replace(/[:.]/g,'-')}-${crypto.randomUUID().slice(0,8)}`);
 await fs.mkdir(runDir,{recursive:false});await fs.mkdir(path.join(runDir,'validated'));
-const raw={brand:'bonkers-corner',started_at:new Date().toISOString(),user_agent:ua,scope:'sitemap detail candidates',max_requests:cap,requests:0,pages:[],errors:[],complete:false,robots_sha256:null,stop_reason:null};
+const raw={brand:'bonkers-corner',started_at:new Date().toISOString(),user_agent:ua,scope:refresh?'sitemap detail refresh':'sitemap detail candidates',max_requests:cap,requests:0,pages:[],errors:[],complete:false,robots_sha256:null,stop_reason:null};
 const validated={started_at:raw.started_at,status:'partial',price_unit:'minor_integer',requests:0,products:0,variants:0,images:0,batch_files:[],raw_manifest:'../manifest.json',validation_errors:[],request_errors:[]};
 const sha = data=>crypto.createHash('sha256').update(data).digest('hex');
 async function atomic(file,bytes){const tmp=`${file}.${crypto.randomUUID()}.tmp`;await fs.writeFile(tmp,bytes,{flag:'wx'});await fs.rename(tmp,file);}
