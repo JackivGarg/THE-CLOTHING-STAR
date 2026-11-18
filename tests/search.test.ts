@@ -129,3 +129,10 @@ test('ordinary design words match stored product copy while material constraints
   assert.equal(search([product], {...parseQuery('dragon hoodie'), priceMode:'item'}).total, 0);
   assert.deepEqual(unsupportedQuery('cotton skull hoodie'), ['cotton']);
 });
+
+test('explicit men and women labels both match without inventing unisex', () => {
+  const item = {...demo[0], audience:null, audiences:['men','women'] as ('men'|'women')[]};
+  assert.equal(search([item], {audience:'men'}).total, 1);
+  assert.equal(search([item], {audience:'women'}).total, 1);
+  assert.equal(search([item], {audience:'unisex'}).total, 0);
+});

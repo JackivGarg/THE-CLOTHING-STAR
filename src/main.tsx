@@ -8,7 +8,7 @@ import {BrandWorld} from './BrandWorld';
 
 type Variant = {id?: string; size: string | null; colour: string | null; price_minor: number; available?: boolean | null; source_options?: Record<string, string>};
 type Audience = 'men' | 'women' | 'unisex';
-type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean; audience?: Audience | null; match_reason?: string};
+type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean; audience?: Audience | null; audiences?: Audience[]; match_reason?: string};
 type Results = {mode: string; filters: Record<string, string | number>; confirmed: Product[]; unknownDelivery: Product[]; lastSeen: Product[]; coverage: string; total: number; page: number; hasMore: boolean};
 type Brand = {slug: string; name: string; product_count?: number};
 type SearchForm = {
@@ -39,7 +39,7 @@ function ProductCard({product, added, full, toggle}: {product: Product; added: b
   const variant = product.selected_variant;
   return <article className="product">
     <div className="product-art"><ProductVisual key={product.image_url} product={product}/></div>
-    <div className="product-meta"><span>{product.brand}</span>{product.audience && <span>{audiences[product.audience]}</span>}{product.synthetic && <span>Example</span>}</div>
+    <div className="product-meta"><span>{product.brand}</span>{product.audience && <span>{audiences[product.audience]}</span>}{product.audiences?.length && <span>{product.audiences.map(value => audiences[value]).join(' / ')}</span>}{product.synthetic && <span>Example</span>}</div>
     <h3>{product.title}</h3>
     {product.match_reason && <p>{product.match_reason}</p>}
     <p className="product-price">{money(variant.price_minor)} <small>item price</small></p>

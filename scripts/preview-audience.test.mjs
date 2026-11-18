@@ -8,7 +8,7 @@ test('audience uses explicit merchant tags or title labels and keeps ambiguous p
   });
   assert.equal(previewAudience({title:'Women’s wide-leg jeans'}).audience,'women');
   assert.equal(previewAudience({title:'Unisex hoodie',source_tags:['Men','Women']}).audience,'unisex');
-  assert.equal(previewAudience({title:'Hoodie',source_tags:['Men','Women']}).audience,null);
+  assert.deepEqual(previewAudience({title:'Hoodie',source_tags:['Men','Women']}).audiences,['men','women']);
   assert.equal(previewAudience({title:'Men’s hoodie',source_tags:['Women']}).audience,null);
   assert.equal(previewAudience({title:'Girls Night graphic tee',source_tags:['Womenswear Picks']}).audience,null);
 });

@@ -24,5 +24,8 @@ export function previewAudience(product) {
     return {audience:'unisex', audience_evidence:evidence.find(item => item.audience === 'unisex')};
   }
   if (labels.size === 1) return {audience:evidence[0].audience, audience_evidence:evidence[0]};
+  if (!explicit && labels.size === 2 && labels.has('men') && labels.has('women')) {
+    return {audience:null, audiences:['men','women'], audience_evidence:null};
+  }
   return {audience:null, audience_evidence:null};
 }
