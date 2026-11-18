@@ -26,6 +26,7 @@ const audienceTerm = /\b(unisex|women(?:['’]?s)?|men(?:['’]?s)?)\b/i;
 const sizeTerm = /\b(?:size|waist)\s*[:=-]?\s*(\d?x{1,3}[sl]|[sml]|(?:uk\s*)?\d{1,3}(?:[-–]\d{1,3})?|one size|free size)\b/i;
 const budgetTerm = /(?:\b(?:under|below|within|up to|max(?:imum)?|budget(?: of)?)\s*|₹\s*|\b(?:rs\.?|inr)\s*)\s*(?:(?:₹|rs\.?|inr)\s*)?([\d,]+(?:\.\d{1,2})?)\s*(k)?\b/i;
 const designTerm = /\b(?:thunder|lightning|boxy)\b/i;
+const strictTerms = new Set(['leather','cotton','polyester','wool','linen','silk','acrylic','nylon','gsm','return','returns','refundable','waterproof','water-resistant','authentic','preorder','pre-order','sustainable','organic']);
 const fitTerm = /\b(?:over[- ]?sized)\b/i;
 const themeTerms: [string, RegExp][] = [
   ['racing', /\b(?:racing|motorsport|grand prix|formula\s*1)\b/i],
@@ -53,21 +54,26 @@ export function parseQuery(input: string): Filters {
   if (size) filters.size = sizeKey(size[1]);
   if (budget) filters.budget = Math.round(Number(budget[1].replaceAll(',', '')) * (budget[2] ? 1000 : 1) * 100);
   if (fitTerm.test(input)) filters.fit = 'oversized';
-  const design = input.toLowerCase().match(new RegExp(designTerm.source, 'gi'));
-  if (design) filters.design = [...new Set(design)];
+  const design: string[] = input.toLowerCase().match(new RegExp(designTerm.source, 'gi')) ?? [];
+  design.push(...unparsedWords(input));
+  if (design.length) filters.design = [...new Set(design)];
   if (theme) filters.theme = theme[0];
   if (theme?.[0] === 'racing' && /\b(?:prints?|graphics?|artworks?)\b/i.test(input)) filters.printTheme = 'racing';
   return filters;
 }
 
 // Keep unsupported requirements visible rather than silently broadening a search.
-export function unsupportedQuery(input: string): string[] {
+function unparsedWords(input: string): string[] {
   let rest = input.toLowerCase();
   for (const pattern of [budgetTerm, sizeTerm, ...categoryTerms.map(([, term]) => term), audienceTerm, colourTerms, fitTerm, designTerm, ...themeTerms.map(([, term]) => term)]) {
     rest = remove(rest, pattern);
   }
-  if (parseQuery(input).printTheme) rest = remove(rest, /\b(?:prints?|graphics?|artworks?)\b/i);
+  if (themeTerms[0][1].test(input) && /\b(?:prints?|graphics?|artworks?)\b/i.test(input)) rest = remove(rest, /\b(?:prints?|graphics?|artworks?)\b/i);
   return rest.replace(filler, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter(Boolean);
+}
+
+export function unsupportedQuery(input: string): string[] {
+  return unparsedWords(input).filter(word => strictTerms.has(word) || /^\d/.test(word));
 }
 
 export function hasMultipleChoices(input: string): boolean {

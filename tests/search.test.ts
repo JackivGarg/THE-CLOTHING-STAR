@@ -120,3 +120,12 @@ test('a fresh eligible variant takes precedence over a cheaper stale variant', (
   const product = {...demo[0], synthetic:false, variants:[stale,fresh]};
   assert.equal(search([product], {priceMode:'item'}).confirmed[0].selected_variant.id, 'fresh');
 });
+
+test('ordinary design words match stored product copy while material constraints remain explicit', () => {
+  const product = {...demo[0], id:'skull', title:'Omen Hoodie', description_text:'A skull design in the artwork'};
+  const filters = {...parseQuery('skull hoodie'), priceMode:'item' as const};
+  assert.deepEqual(unsupportedQuery('skull hoodie'), []);
+  assert.equal(search([product], filters).confirmed[0].id, 'skull');
+  assert.equal(search([product], {...parseQuery('dragon hoodie'), priceMode:'item'}).total, 0);
+  assert.deepEqual(unsupportedQuery('cotton skull hoodie'), ['cotton']);
+});
