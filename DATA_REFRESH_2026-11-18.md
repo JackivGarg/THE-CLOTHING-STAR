@@ -25,3 +25,9 @@ JNORSS's captured hoodie and tee prices were checked against their storefront pa
 Bonkers detail refresh was attempted twice after observing the stated 60-second cooldown. Each attempt stopped at the first product request with HTTP 429. No Bonkers data was refreshed. The saved local run manifests retain the response status and retry period. Genrage's robots request failed twice and a DNS lookup timed out, leaving that brand's refresh incomplete. Snitch remains outside the active scope.
 
 The user deferred the separate database backup and restore test. Scheduling weekly collection, reviewing observations, classifying all products, approving media and publishing the catalogue remain unfinished. One real refresh does not establish a week-over-week price change.
+
+## Classification progress
+
+Three previously unknown JNORSS products were classified from individually checked product text. Another 65 explicit co-ord sets and 89 explicitly named Bonkers caps were classified using narrow title rules. The merchant-type mapping then classified 41 Everdion trousers, 40 Everdion co-ord sets, 19 WTFlex caps and five Powerlook bags. Each update applies only to an unknown category and records accepted evidence with its rule version. Existing classifications remain in place.
+
+The local preview uses the same reviewed Everdion, WTFlex and Powerlook type mappings. It additionally extracts explicit garment-fit evidence for private preview search. The hosted search reads normalized fit values and has not yet been connected to those preview fit projections.
