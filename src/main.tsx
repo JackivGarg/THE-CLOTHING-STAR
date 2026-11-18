@@ -35,7 +35,7 @@ function ProductVisual({product}: {product: Product}) {
     : <><Garment category={product.category ?? 'tee'} tone="#9da595"/><span>Illustration · photo unavailable</span></>;
 }
 
-function ProductCard({product, added, full, toggle}: {product: Product; added: boolean; full: boolean; toggle: () => void}) {
+function ProductCard({product, added, full, toggle, saved, toggleSaved}: {product: Product; added: boolean; full: boolean; toggle: () => void; saved: boolean; toggleSaved: () => void}) {
   const variant = product.selected_variant;
   return <article className="product">
     <div className="product-art"><ProductVisual key={product.image_url} product={product}/></div>
@@ -49,6 +49,7 @@ function ProductCard({product, added, full, toggle}: {product: Product; added: b
     {product.source_url && !product.synthetic && <p className="checked-time">Confirm your options and availability on the brand’s site.</p>}
     <div className="result-actions">
       {product.source_url && !product.synthetic && <a className="merchant-link" href={product.source_url} target="_blank" rel="noopener noreferrer">View at brand <Arrow/></a>}
+      <button className="card-compare" type="button" aria-pressed={saved} onClick={toggleSaved}>{saved ? 'Saved ✓' : 'Save'}</button>
       <button className="card-compare" type="button" disabled={full && !added} aria-pressed={added} aria-label={'Compare ' + product.title} onClick={toggle}>{added ? 'Added ✓' : '+ Compare'}</button>
     </div>
   </article>;
@@ -66,6 +67,17 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('');
   const [compare, setCompare] = useState<Product[]>([]);
+  const [savedProducts, setSavedProducts] = useState<Product[]>(() => {
+    try {
+      const value: unknown = JSON.parse(localStorage.getItem('star-saved-products') || '[]');
+      if (!Array.isArray(value)) return [];
+      return value.filter((item): item is Product => item && typeof item === 'object' &&
+        typeof item.id === 'string' && typeof item.title === 'string' &&
+        item.selected_variant && typeof item.selected_variant.id === 'string' &&
+        Number.isSafeInteger(item.selected_variant.price_minor) &&
+        (item.source_url == null || (typeof item.source_url === 'string' && /^https:\/\//.test(item.source_url))));
+    } catch { return []; }
+  });
   const [following, setFollowing] = useState<string[]>(() => {
     try {
       const saved: unknown = JSON.parse(localStorage.getItem('star-brands') || '[]');
@@ -162,6 +174,18 @@ function App() {
     try { localStorage.setItem('star-brands', JSON.stringify(next)); } catch {}
   }
 
+  function toggleSaved(product: Product) {
+    if (!product.selected_variant.id) return;
+    setSavedProducts(current => {
+      const exists = current.some(item => item.id === product.id && item.selected_variant.id === product.selected_variant.id);
+      const next = exists
+        ? current.filter(item => item.id !== product.id || item.selected_variant.id !== product.selected_variant.id)
+        : [...current, product];
+      try { localStorage.setItem('star-saved-products', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
   function toggleCompare(product: Product) {
     setCompare(current => current.some(item => item.id === product.id)
       ? current.filter(item => item.id !== product.id)
@@ -184,7 +208,9 @@ function App() {
 
   function cards(products: Product[]) {
     return <div className="product-grid">{products.map(product => <ProductCard key={product.id} product={product}
-      added={compare.some(item => item.id === product.id)} full={compare.length >= 3} toggle={() => toggleCompare(product)}/>)}</div>;
+      added={compare.some(item => item.id === product.id)} full={compare.length >= 3} toggle={() => toggleCompare(product)}
+      saved={savedProducts.some(item => item.id === product.id && item.selected_variant.id === product.selected_variant.id)}
+      toggleSaved={() => toggleSaved(product)}/>)}</div>;
   }
 
   return <>
@@ -295,6 +321,18 @@ function App() {
       </article>)}</div>
       <div className="radar-future"><span className="radar-dot"/><div><h2>Weekly activity</h2><p>Weekly drop and price history is not available yet.</p></div></div>
     </main>}
+    {savedProducts.length > 0 && <details className="comparison" aria-label="Saved products">
+      <summary>Saved products <span>{savedProducts.length}</span></summary>
+      <div className="comparison-heading"><h2>Your saved choices</h2></div>
+      <p className="checked-time">Saved prices and availability can change. Check the brand before buying.</p>
+      <div className="comparison-items">{savedProducts.map(product => <article key={product.id + ':' + product.selected_variant.id}>
+        <button className="remove-item" onClick={() => toggleSaved(product)} aria-label={'Remove saved '+product.title}>×</button>
+        <span>{product.brand}</span><h3>{product.title}</h3><b>{money(product.selected_variant.price_minor)}</b>
+        <p>{product.selected_variant.size || 'Size unknown'} · {product.selected_variant.colour || 'Colour unknown'}</p>
+        {product.selected_variant.source_options && <p>{Object.entries(product.selected_variant.source_options).map(([name,value]) => name + ': ' + value).join(' · ')}</p>}
+        {product.source_url && !product.synthetic && <a href={product.source_url} target="_blank" rel="noopener noreferrer">View at brand <Arrow/></a>}
+      </article>)}</div>
+    </details>}
     {compare.length > 0 && <details className="comparison" aria-label="Product comparison">
       <summary>Compare selected items <span>{compare.length}/3</span></summary>
       <div className="comparison-heading"><h2>Compare your picks</h2><button onClick={() => setCompare([])}>Clear all</button></div>
