@@ -14,3 +14,12 @@ test('collected preview preserves identities, minor prices and source image URLs
  assert.ok(result.lastSeen.length>0);
  for(const p of result.lastSeen){assert.equal(p.brand,'JNORSS');assert.ok(p.selected_variant.price_minor<=150000);assert.equal(p.selected_variant.available,true);}
 });
+
+test('verified refresh exposes the new JNORSS tee as an unconfirmed offer', {skip:!fs.existsSync('data/catalogue/jnorss-refresh/2026-11-18T05-57-27-794Z-b19ff5df-32d8-41f2-a8b3-baeee2c1bfc0/verified-preview-manifest.json')}, () => {
+ const {products}=JSON.parse(fs.readFileSync(filename,'utf8')) as {products:(Product & {brand_slug:string})[]};
+ const product=products.find(p=>p.brand_slug==='jnorss' && p.title==='Blue Horizon Layered Tee');
+ assert.ok(product, 'The verified JNORSS refresh should include the new tee');
+ assert.ok(product.variants.length > 0);
+ assert.ok(product.variants.every(v=>v.available === true || v.available === false || v.available === null));
+ assert.equal(search([product], {category:'tee',priceMode:'item'}).confirmed.length, 0);
+});

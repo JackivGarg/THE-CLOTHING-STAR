@@ -39,6 +39,14 @@ insert into public.product_images(product_id, source_url, content_use_status)
 values ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'https://example.com/approved.jpg', 'approved');
 insert into public.variants(id, product_id, source_id, size, colour, price_minor, available)
 values ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'approved-v', 'XS', 'green', 100000, true);
+insert into public.products(id, brand_id, source_id, title, category, description_text, published)
+values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee','11111111-1111-1111-1111-111111111111',
+        'rank-title','Horizon Hoodie','hoodie','plain',true),
+       ('ffffffff-ffff-ffff-ffff-ffffffffffff','11111111-1111-1111-1111-111111111111',
+        'rank-description','Graphic Hoodie','hoodie','Horizon artwork',true);
+insert into public.variants(id,product_id,source_id,size,colour,price_minor,available)
+values ('eeeeeeee-0000-0000-0000-000000000001','eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee','title-v','XS','green',110000,true),
+       ('ffffffff-0000-0000-0000-000000000001','ffffffff-ffff-ffff-ffff-ffffffffffff','description-v','XS','green',100000,true);
 set local role anon;
 do $test$
 declare result jsonb;
@@ -80,6 +88,10 @@ begin
   if (result->>'total')::integer <> 0 then raise exception 'Conflicting labels should remain unresolved: %', result; end if;
   result := public.search_catalogue(p_design => array['shared'], p_audience => 'men');
   if (result->>'total')::integer <> 1 then raise exception 'Unisex should match men: %', result; end if;
+  result := public.search_catalogue(p_design => array['horizon']);
+  if result#>>'{lastSeen,0,title}' <> 'Horizon Hoodie' then raise exception 'Title match did not rank first: %', result; end if;
+  result := public.search_catalogue(p_design => array['horizon'],p_sort=>'price-asc');
+  if result#>>'{lastSeen,0,title}' <> 'Graphic Hoodie' then raise exception 'Price ordering changed: %', result; end if;
   result := public.search_catalogue(p_design => array['generic'], p_audience => 'men');
   if (result->>'total')::integer <> 0 then raise exception 'Unknown audience was treated as verified: %', result; end if;
 end

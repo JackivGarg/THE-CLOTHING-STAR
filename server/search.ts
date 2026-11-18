@@ -101,6 +101,8 @@ export function search(products: Product[], filters: Filters, page = 1, sort: So
         (filters.printTheme && !product.print_themes?.includes(filters.printTheme))) return [];
     const sourceText = new Set(titleWords(product.title + ' ' + (product.description_text ?? '')));
     const exactDesign = filters.design?.filter(term => sourceText.has(term)).length ?? 0;
+    const titleTerms = new Set(titleWords(product.title));
+    const titleDesign = filters.design?.filter(term => titleTerms.has(term)).length ?? 0;
     if (filters.design?.some(term => {
       if (term === 'thunder' || term === 'lightning') return !sourceText.has('thunder') && !sourceText.has('lightning');
       return !sourceText.has(term);
@@ -129,7 +131,7 @@ export function search(products: Product[], filters: Filters, page = 1, sort: So
         match_reason: filters.design?.length
           ? (exactDesign === filters.design.length ? 'Design terms found in product details' : 'Related design found in product details')
           : undefined},
-      relevance: exactDesign * 10 + Number(audienceMatch) * 3 + titleMatch,
+      relevance: exactDesign * 100 + titleDesign * 10 + Number(audienceMatch) * 3 + titleMatch,
       favourite: Number(favourites.has(product.brand.toLowerCase())),
       details: Number(!!variant.size) + Number(!!variant.colour) + Number(!!product.image_url),
     }];

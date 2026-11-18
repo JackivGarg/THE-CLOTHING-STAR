@@ -6,7 +6,7 @@ import './discovery.css';
 import {Garment} from './Garment';
 import {BrandWorld} from './BrandWorld';
 
-type Variant = {id?: string; size: string | null; colour: string | null; price_minor: number; available?: boolean | null; source_options?: Record<string, string>};
+type Variant = {id?: string; size: string | null; colour: string | null; price_minor: number; available?: boolean | null; source_options?: Record<string, string>; observed_at?: string | null};
 type Audience = 'men' | 'women' | 'unisex';
 type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean; audience?: Audience | null; audiences?: Audience[]; match_reason?: string};
 type Results = {mode: string; filters: Record<string, string | number>; confirmed: Product[]; unknownDelivery: Product[]; lastSeen: Product[]; coverage: string; total: number; page: number; hasMore: boolean};
@@ -45,7 +45,7 @@ function ProductCard({product, added, full, toggle}: {product: Product; added: b
     <p className="product-price">{money(variant.price_minor)} <small>item price</small></p>
     <p className="variant-info">{[variant.size && 'Size ' + variant.size, variant.colour].filter(Boolean).join(' · ') || 'Size and colour unavailable'}</p>
     {variant.source_options && Object.keys(variant.source_options).length > 1 && <p className="variant-info">{Object.entries(variant.source_options).map(([name,value]) => name + ': ' + value).join(' · ')}</p>}
-    <p className="checked-time">{product.observed_at ? 'Last observed ' + new Date(product.observed_at).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'}) : 'Stock date unavailable'}</p>
+    <p className="checked-time">{(variant.observed_at ?? product.observed_at) ? 'Last observed ' + new Date((variant.observed_at ?? product.observed_at)!).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'}) : 'Stock date unavailable'}</p>
     {product.source_url && !product.synthetic && <p className="checked-time">Confirm your options and availability on the brand’s site.</p>}
     <div className="result-actions">
       {product.source_url && !product.synthetic && <a className="merchant-link" href={product.source_url} target="_blank" rel="noopener noreferrer">View at brand <Arrow/></a>}

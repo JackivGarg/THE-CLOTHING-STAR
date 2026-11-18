@@ -136,3 +136,11 @@ test('explicit men and women labels both match without inventing unisex', () => 
   assert.equal(search([item], {audience:'women'}).total, 1);
   assert.equal(search([item], {audience:'unisex'}).total, 0);
 });
+
+test('a title design match leads an equally exact description match', () => {
+  const base = {...demo[0], variants:[{...demo[0].variants[0], available:true, price_minor:100000}]};
+  const description = {...base, id:'description', title:'Omen Hoodie', description_text:'Horizon graphic'};
+  const title = {...base, id:'title', title:'Horizon Hoodie', description_text:null};
+  const filters = {...parseQuery('horizon hoodie'), priceMode:'item' as const};
+  assert.deepEqual(search([description,title], filters).confirmed.map(item=>item.id), ['title','description']);
+});
