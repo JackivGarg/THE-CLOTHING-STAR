@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
-import { Redis } from '@upstash/redis';
 import { demo } from './demo';
 import { hasMultipleChoices, parseQuery, search, unsupportedQuery, type Filters, type Product } from './search';
 const app=express(); app.use(express.json({limit:'8kb'}));
@@ -12,8 +11,7 @@ const mode=preview?'local-preview':process.env.SUPABASE_URL&&process.env.SUPABAS
 if(preview)app.use((req,res,next)=>{const origin=req.get('origin');if(origin){try{if(!['localhost','127.0.0.1','[::1]'].includes(new URL(origin).hostname)){res.status(403).json({error:'Private preview is available from this computer only.'});return;}}catch{res.status(403).end();return;}}next();});
 const supabaseKey=process.env.SUPABASE_PUBLISHABLE_KEY;
 const supabase=process.env.SUPABASE_URL&&supabaseKey?createClient(process.env.SUPABASE_URL,supabaseKey,{auth:{persistSession:false}}):null;
-const redis=process.env.UPSTASH_REDIS_REST_URL&&process.env.UPSTASH_REDIS_REST_TOKEN?new Redis({url:process.env.UPSTASH_REDIS_REST_URL,token:process.env.UPSTASH_REDIS_REST_TOKEN}):null;
-app.get('/api/v1/status',(_req,res)=>res.json({mode,cache:redis?'configured':'disabled',product_count:preview?.products.length??null,source:preview?'Verified local collection snapshots; private review preview.':'Published Supabase catalogue',snapshot_created_at:preview?.created_at??null}));
+app.get('/api/v1/status',(_req,res)=>res.json({mode,cache:'disabled',product_count:preview?.products.length??null,source:preview?'Verified local collection snapshots; private review preview.':'Published Supabase catalogue',snapshot_created_at:preview?.created_at??null}));
 app.get('/api/v1/brands',async(_req,res)=>{
  try {
   if(preview){const groups=new Map<string,{slug:string;name:string;product_count:number}>();for(const p of preview.products){const slug=(p as Product & {brand_slug:string}).brand_slug;const b=groups.get(slug)??{slug,name:p.brand,product_count:0};b.product_count++;groups.set(slug,b);}res.json({mode,brands:[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name))});return;}
@@ -57,8 +55,18 @@ app.post('/api/v1/search',async(req,res)=>{
    res.status(422).json({error:'Choose a budget between ₹1 and ₹10,00,000.'}); return;
  }
  try { let products:Product[]=preview?.products??demo;
-  if(supabase&&!preview){let cached:Product[]|null=null; try{cached=redis?await redis.get<Product[]>('catalogue:public:v2'):null;}catch{}
-   if(cached) products=cached; else {products=[]; for(let offset=0;offset<10000;offset+=1000){const {data,error}=await supabase.from('public_catalogue').select('*').order('id').range(offset,offset+999); if(error) throw error; products.push(...((data??[]) as Product[])); if((data??[]).length<1000)break;} try{if(redis) await redis.set('catalogue:public:v2',products,{ex:120});}catch{}}
+  if(supabase&&!preview){
+   const {data,error} = await supabase.rpc('search_catalogue', {
+    p_brand:filters.brand ?? null, p_category:filters.category ?? null,
+    p_audience:filters.audience ?? null, p_size:filters.size ?? null,
+    p_colour:filters.colour ?? null, p_budget:filters.budget ?? null,
+    p_fit:filters.fit ?? null, p_theme:filters.theme ?? null,
+    p_print_theme:filters.printTheme ?? null, p_title:filters.title ?? null,
+    p_design:filters.design ?? [], p_sort:sort, p_page:page, p_favourites:favouriteBrands,
+   });
+   if(error) throw error;
+   res.json({mode, filters, ...data, coverage:'Published catalogue. Check the brand for current details.'});
+   return;
   }
   // An explicit fit label in the merchant's product name is usable in the
   // local snapshot. Leave unlabelled items unknown and keep public data as-is.

@@ -1,0 +1,102 @@
+[
+  {
+    "slug": "cap",
+    "label": "Caps",
+    "query_pattern": "\\bcaps?\\b"
+  },
+  {
+    "slug": "hoodie",
+    "label": "Hoodies",
+    "query_pattern": "\\b(?:hoodies?|hooded sweatshirts?)\\b"
+  },
+  {
+    "slug": "sweatshirt",
+    "label": "Sweatshirts",
+    "query_pattern": "\\bsweatshirts?\\b"
+  },
+  {
+    "slug": "sweater",
+    "label": "Sweaters",
+    "query_pattern": "\\b(?:sweaters?|pullovers?)\\b"
+  },
+  {
+    "slug": "tee",
+    "label": "T-shirts",
+    "query_pattern": "\\b(?:t[- ]?shirts?|tees?)\\b"
+  },
+  {
+    "slug": "shirt",
+    "label": "Shirts",
+    "query_pattern": "\\bshirts?\\b"
+  },
+  {
+    "slug": "jeans",
+    "label": "Jeans",
+    "query_pattern": "\\bjeans?\\b"
+  },
+  {
+    "slug": "shorts",
+    "label": "Shorts",
+    "query_pattern": "\\bshorts?\\b"
+  },
+  {
+    "slug": "trousers",
+    "label": "Trousers",
+    "query_pattern": "\\b(?:pants?|trousers?|joggers?|cargos?)\\b"
+  },
+  {
+    "slug": "jacket",
+    "label": "Jackets",
+    "query_pattern": "\\bjackets?\\b"
+  },
+  {
+    "slug": "vest",
+    "label": "Vests",
+    "query_pattern": "\\b(?:vests?|tank tops?)\\b"
+  },
+  {
+    "slug": "dress",
+    "label": "Dresses",
+    "query_pattern": "\\bdress(?:es)?\\b"
+  },
+  {
+    "slug": "skirt",
+    "label": "Skirts",
+    "query_pattern": "\\bskirts?\\b"
+  },
+  {
+    "slug": "co_ord",
+    "label": "Co-ords",
+    "query_pattern": "\\bco[- ]?ords?\\b"
+  },
+  {
+    "slug": "bag",
+    "label": "Bags",
+    "query_pattern": "\\b(?:bags?|backpacks?|totes?)\\b"
+  },
+  {
+    "slug": "socks",
+    "label": "Socks",
+    "query_pattern": "\\bsocks?\\b"
+  },
+  {
+    "slug": "scarf",
+    "label": "Scarves",
+    "query_pattern": "\\b(?:scarves|scarf)\\b"
+  },
+  {
+    "slug": "pendant",
+    "label": "Pendants",
+    "query_pattern": "\\bpendants?\\b"
+  },
+  {
+    "slug": "gift_card",
+    "label": "Gift cards",
+    "query_pattern": "\\bgift cards?\\b"
+  },
+  {
+    "slug": "accessory",
+    "label": "Accessories",
+    "query_pattern": "\\baccessor(?:y|ies)\\b"
+  }
+]

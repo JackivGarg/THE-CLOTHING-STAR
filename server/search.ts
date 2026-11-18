@@ -1,3 +1,5 @@
+import categoryRegistry from '../catalogue-categories.json';
+
 export type Variant = { id: string; size: string | null; colour: string | null; price_minor: number; available: boolean | null; price_checked_at?: string | null; stock_checked_at?: string | null; preorder?: boolean | null; fulfilment_status?: string | null };
 export type Audience = 'men' | 'women' | 'unisex';
 export type Product = { id: string; brand: string; title: string; description_text?: string | null; category: string; fit: string | null; themes: string[]; print_themes?: string[]; theme_evidence: string | null; variants: Variant[]; observed_at: string | null; image_url: string | null; source_url: string | null; synthetic: boolean; audience?: Audience | null; audience_evidence?: {audience: Audience; field: 'tag' | 'title'; value: string} | null };
@@ -5,22 +7,9 @@ export type Filters = { brand?: string; audience?: Audience; category?: string; 
 export type Sort = 'recommended' | 'price-asc' | 'price-desc';
 export const PAGE_SIZE = 5;
 
-const categoryTerms: [string, RegExp][] = [
-  ['cap', /\bcaps?\b/i],
-  ['hoodie', /\b(?:hoodies?|hooded sweatshirts?)\b/i],
-  ['sweatshirt', /\bsweatshirts?\b/i],
-  ['sweater', /\b(?:sweaters?|pullovers?)\b/i],
-  ['tee', /\b(?:t[- ]?shirts?|tees?)\b/i],
-  ['shirt', /\bshirts?\b/i],
-  ['jeans', /\bjeans?\b/i],
-  ['shorts', /\bshorts?\b/i],
-  ['trousers', /\b(?:pants?|trousers?|joggers?|cargos?)\b/i],
-  ['jacket', /\bjackets?\b/i],
-  ['vest', /\b(?:vests?|tank tops?)\b/i],
-  ['dress', /\bdress(?:es)?\b/i],
-  ['skirt', /\bskirts?\b/i],
-  ['co_ord', /\bco[- ]?ords?\b/i],
-];
+const categoryTerms: [string, RegExp][] = categoryRegistry.map(category =>
+  [category.slug, new RegExp(category.query_pattern, 'i')]
+);
 const colourTerms = /\b(black|white|blue|red|green|brown|pink|beige|grey|gray|navy|cream|olive|purple|yellow|orange|maroon|indigo|charcoal)\b/i;
 const audienceTerm = /\b(unisex|women(?:['’]?s)?|men(?:['’]?s)?)\b/i;
 const sizeTerm = /\b(?:size|waist)\s*[:=-]?\s*(\d?x{1,3}[sl]|[sml]|(?:uk\s*)?\d{1,3}(?:[-–]\d{1,3})?|one size|free size)\b/i;

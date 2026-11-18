@@ -12,6 +12,7 @@
     "collect:feeds": "node scripts/collect-catalogue.mjs",
     "prepare:staging": "node scripts/prepare-staging.mjs",
     "balanced:sample": "node scripts/build-balanced-review.mjs",
+    "report:weekly": "tsx scripts/report-weekly-prices.ts",
     "start": "node scripts/dev.mjs"
   },
   "dependencies": {

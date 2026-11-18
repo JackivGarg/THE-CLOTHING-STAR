@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
+import categoryRegistry from '../catalogue-categories.json';
 import './style.css';
 import './discovery.css';
 import {Garment} from './Garment';
@@ -16,11 +17,9 @@ type SearchForm = {
 };
 const initial: SearchForm = {query:'', queryMode:'requirements', audience:'', category:'', brand:'', size:'', colour:'', budget:'', priceMode:'delivered', sort:'recommended'};
 const audiences = {men:'Men', women:'Women', unisex:'Unisex'} as const;
-const categories: Record<string, string> = {
-  cap:'Caps', hoodie:'Hoodies', tee:'T-shirts', sweatshirt:'Sweatshirts', sweater:'Sweaters', shirt:'Shirts',
-  jeans:'Jeans', trousers:'Trousers', shorts:'Shorts', jacket:'Jackets', vest:'Vests',
-  dress:'Dresses', skirt:'Skirts', co_ord:'Co-ords',
-};
+const categories: Record<string, string> = Object.fromEntries(
+  categoryRegistry.map(category => [category.slug, category.label])
+);
 const colours = ['Black','White','Blue','Red','Green','Brown','Pink','Beige','Grey','Navy','Cream','Olive','Purple','Yellow','Orange','Maroon','Indigo','Charcoal'];
 const money = (minor: number) => '₹' + (minor / 100).toLocaleString('en-IN');
 const motion = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
