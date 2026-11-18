@@ -1,6 +1,13 @@
 // Provisional source-text categories for the private preview, never image inference.
 export function previewCategory(row){
  const title=String(row.title??'').trim().toLowerCase();
+ const merchantType=String(row.original_product_type??'').trim().toLowerCase();
+ const brand=row.brand_slug??row.store_slug;
+ if(brand==='everdion' && ['trackpants','cargos'].includes(merchantType)
+    && !/\b(?:set|co[ -]?ord|bag|shorts|jacket|shirt)\b/.test(title)) return 'trousers';
+ if(brand==='everdion' && merchantType==='cord set' && /\b(?:set|tracksuit)\b/.test(title)) return 'co_ord';
+ if(brand==='wtflex' && ['caps','caps.'].includes(merchantType) && /\bcap[.!]?\s*$/.test(title)) return 'cap';
+ if(brand==='powerlook' && merchantType==='bags' && /\bbag[.!]?\s*$/.test(title)) return 'bag';
  // Accessories may name the garment they accompany. Co-ords may name both pieces.
  if(/^drawstrings?\s+(?:for|of)\b/.test(title))return 'accessory';
  if(/\bgift\s*card\b/.test(title))return 'gift_card';

@@ -18,3 +18,11 @@ test('preview categories have a shared browsing and search definition', async ()
   }
   assert.equal(keys.size, categories.length);
 });
+
+test('merchant-specific reviewed types classify clear products and preserve conflicts', () => {
+  assert.equal(previewCategory({brand_slug:'everdion', title:'Button Track Pant', original_product_type:'TRACKPANTS'}), 'trousers');
+  assert.equal(previewCategory({brand_slug:'everdion', title:'Astro Tracksuit', original_product_type:'Cord set'}), 'co_ord');
+  assert.equal(previewCategory({brand_slug:'wtflex', title:'Maniac Cotton Cap.', original_product_type:'Caps.'}), 'cap');
+  assert.equal(previewCategory({brand_slug:'powerlook', title:'Utility Bag', original_product_type:'Bags'}), 'bag');
+  assert.notEqual(previewCategory({brand_slug:'everdion', title:'Mystery Set', original_product_type:'TRACKPANTS'}), 'trousers');
+});
