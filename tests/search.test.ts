@@ -144,3 +144,9 @@ test('a title design match leads an equally exact description match', () => {
   const filters = {...parseQuery('horizon hoodie'), priceMode:'item' as const};
   assert.deepEqual(search([description,title], filters).confirmed.map(item=>item.id), ['title','description']);
 });
+
+test('explicitly extracted garment fits can satisfy a fit filter', () => {
+  const product = {...demo[0], fit:null, fits:['oversized','boxy']};
+  assert.equal(search([product], {fit:'oversized'}).total, 1);
+  assert.equal(search([{...product, fits:[]}], {fit:'oversized'}).total, 0);
+});

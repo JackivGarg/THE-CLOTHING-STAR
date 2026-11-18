@@ -68,12 +68,6 @@ app.post('/api/v1/search',async(req,res)=>{
    res.json({mode, filters, ...data, coverage:'Published catalogue. Check the brand for current details.'});
    return;
   }
-  // An explicit fit label in the merchant's product name is usable in the
-  // local snapshot. Leave unlabelled items unknown and keep public data as-is.
-  if (preview && filters.fit === 'oversized') {
-    products = products.map(product => !product.fit && /\bover[- ]?sized\b/i.test(product.title)
-      ? {...product, fit:'oversized'} : product);
-  }
   res.json({mode,filters,...search(products,filters,page,sort,favouriteBrands),coverage:preview?'Prices and stock are from the dated catalogue snapshots. Check the brand for current details.':supabase?'Published catalogue. Check the brand for current details.':'Fictional examples only. No live products.'});
  }catch{res.status(503).json({error:'Catalogue is temporarily unavailable. Please try again.'});}
 });

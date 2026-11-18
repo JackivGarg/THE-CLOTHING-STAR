@@ -23,3 +23,12 @@ test('verified refresh exposes the new JNORSS tee as an unconfirmed offer', {ski
  assert.ok(product.variants.every(v=>v.available === true || v.available === false || v.available === null));
  assert.equal(search([product], {category:'tee',priceMode:'item'}).confirmed.length, 0);
 });
+
+test('description-supported oversized fit is searchable in the refreshed preview', {skip:!fs.existsSync('data/catalogue/powerlook-refresh/2026-11-18T06-04-46-008Z-ec8dcafa-38b9-4589-91fe-a10620c73fff/verified-preview-manifest.json')}, () => {
+ const {products}=JSON.parse(fs.readFileSync(filename,'utf8')) as {products:Product[]};
+ const product=products.find(p=>p.title==='Black Bleached Graphic T-Shirt 100% Cotton');
+ assert.ok(product);
+ const result=search([product], {fit:'oversized',category:'tee',priceMode:'item'});
+ assert.equal(result.total,1);
+ assert.equal(result.lastSeen[0].id,product.id);
+});
