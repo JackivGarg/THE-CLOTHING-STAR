@@ -33,10 +33,32 @@ values ('88888888-8888-8888-8888-888888888888', '11111111-1111-1111-1111-1111111
 insert into public.variants(id, product_id, source_id, size, colour, price_minor, available)
 values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '88888888-8888-8888-8888-888888888888', 'ambiguous-v', 'M', 'black', 100000, true),
        ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '99999999-9999-9999-9999-999999999999', 'shared-v', 'M', 'black', 100000, true);
+insert into public.products(id, brand_id, source_id, title, category, published)
+values ('cccccccc-cccc-cccc-cccc-cccccccccccc', '11111111-1111-1111-1111-111111111111', 'approved-image', 'Approved Image Hoodie', 'hoodie', true);
+insert into public.product_images(product_id, source_url, content_use_status)
+values ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'https://example.com/approved.jpg', 'approved');
+insert into public.variants(id, product_id, source_id, size, colour, price_minor, available)
+values ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'approved-v', 'XS', 'green', 100000, true);
 set local role anon;
 do $test$
 declare result jsonb;
 begin
+  if has_column_privilege('anon', 'public.products', 'image_url', 'select') then
+    raise exception 'Direct product image field remains publicly readable';
+  end if;
+  if (select count(*) from public.product_images where content_use_status <> 'approved') <> 0 then
+    raise exception 'Unapproved image was directly readable';
+  end if;
+  if (select image_url from public.public_catalogue where title='Omen Hoodie') is not null then
+    raise exception 'Unapproved image exposed through legacy view';
+  end if;
+  if (select image_url from public.public_catalogue where title='Approved Image Hoodie') <> 'https://example.com/approved.jpg' then
+    raise exception 'Approved image was not exposed through legacy view';
+  end if;
+  result := public.search_catalogue(p_design => array['approved']);
+  if result#>>'{lastSeen,0,image_url}' <> 'https://example.com/approved.jpg' then
+    raise exception 'Approved image was not exposed through search';
+  end if;
   result := public.search_catalogue(p_category => 'hoodie', p_design => array['thunder']);
   if (result->>'total')::integer <> 1 then raise exception 'Related lookup or publication filter failed: %', result; end if;
   result := public.search_catalogue(p_category => 'hoodie', p_design => array['omen'], p_size => 'M', p_colour => 'black', p_budget => 150000);
