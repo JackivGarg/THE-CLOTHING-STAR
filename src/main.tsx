@@ -5,10 +5,10 @@ import './discovery.css';
 import {Garment} from './Garment';
 import {BrandWorld} from './BrandWorld';
 
-type Variant = {id?: string; size: string | null; colour: string | null; price_minor: number; available?: boolean | null};
+type Variant = {id?: string; size: string | null; colour: string | null; price_minor: number; available?: boolean | null; source_options?: Record<string, string>};
 type Audience = 'men' | 'women' | 'unisex';
-type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean; audience?: Audience | null};
-type Results = {mode: string; filters: Record<string, string | number>; confirmed: Product[]; unknownDelivery: Product[]; coverage: string; total: number; page: number; hasMore: boolean};
+type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean; audience?: Audience | null; match_reason?: string};
+type Results = {mode: string; filters: Record<string, string | number>; confirmed: Product[]; unknownDelivery: Product[]; lastSeen: Product[]; coverage: string; total: number; page: number; hasMore: boolean};
 type Brand = {slug: string; name: string; product_count?: number};
 type SearchForm = {
   query: string; queryMode: 'requirements' | 'title'; audience: Audience | ''; category: string; brand: string; size: string;
@@ -17,7 +17,7 @@ type SearchForm = {
 const initial: SearchForm = {query:'', queryMode:'requirements', audience:'', category:'', brand:'', size:'', colour:'', budget:'', priceMode:'delivered', sort:'recommended'};
 const audiences = {men:'Men', women:'Women', unisex:'Unisex'} as const;
 const categories: Record<string, string> = {
-  hoodie:'Hoodies', tee:'T-shirts', sweatshirt:'Sweatshirts', sweater:'Sweaters', shirt:'Shirts',
+  cap:'Caps', hoodie:'Hoodies', tee:'T-shirts', sweatshirt:'Sweatshirts', sweater:'Sweaters', shirt:'Shirts',
   jeans:'Jeans', trousers:'Trousers', shorts:'Shorts', jacket:'Jackets', vest:'Vests',
   dress:'Dresses', skirt:'Skirts', co_ord:'Co-ords',
 };
@@ -42,9 +42,12 @@ function ProductCard({product, added, full, toggle}: {product: Product; added: b
     <div className="product-art"><ProductVisual key={product.image_url} product={product}/></div>
     <div className="product-meta"><span>{product.brand}</span>{product.audience && <span>{audiences[product.audience]}</span>}{product.synthetic && <span>Example</span>}</div>
     <h3>{product.title}</h3>
+    {product.match_reason && <p>{product.match_reason}</p>}
     <p className="product-price">{money(variant.price_minor)} <small>item price</small></p>
     <p className="variant-info">{[variant.size && 'Size ' + variant.size, variant.colour].filter(Boolean).join(' · ') || 'Size and colour unavailable'}</p>
-    <p className="checked-time">{product.observed_at ? 'Stock observed ' + new Date(product.observed_at).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'}) : 'Stock date unavailable'}</p>
+    {variant.source_options && Object.keys(variant.source_options).length > 1 && <p className="variant-info">{Object.entries(variant.source_options).map(([name,value]) => name + ': ' + value).join(' · ')}</p>}
+    <p className="checked-time">{product.observed_at ? 'Last observed ' + new Date(product.observed_at).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'}) : 'Stock date unavailable'}</p>
+    {product.source_url && !product.synthetic && <p className="checked-time">Confirm your options and availability on the brand’s site.</p>}
     <div className="result-actions">
       {product.source_url && !product.synthetic && <a className="merchant-link" href={product.source_url} target="_blank" rel="noopener noreferrer">View at brand <Arrow/></a>}
       <button className="card-compare" type="button" disabled={full && !added} aria-pressed={added} aria-label={'Compare ' + product.title} onClick={toggle}>{added ? 'Added ✓' : '+ Compare'}</button>
@@ -116,6 +119,7 @@ function App() {
         signal:controller.signal,
         body:JSON.stringify({
           query:values.query.trim(), queryMode:values.queryMode, page, sort:values.sort,
+          favouriteBrands:brands.filter(brand => following.includes(brand.slug)).map(brand => brand.name),
           filters:{
             brand:values.brand || undefined, category:values.category || undefined, audience:values.audience || undefined,
             size:values.size.trim() || undefined, colour:values.colour || undefined,
@@ -129,7 +133,7 @@ function App() {
       if (!response.ok) throw Error(data.error || 'Search is temporarily unavailable. Try again.');
       if (controller.signal.aborted) return;
       setResult(previous => page > 1 && previous
-        ? {...data, confirmed:[...previous.confirmed,...data.confirmed], unknownDelivery:[...previous.unknownDelivery,...data.unknownDelivery]}
+        ? {...data, confirmed:[...previous.confirmed,...data.confirmed], unknownDelivery:[...previous.unknownDelivery,...data.unknownDelivery], lastSeen:[...previous.lastSeen,...data.lastSeen]}
         : data);
       setSubmitted(values);
       if (page === 1) requestAnimationFrame(() => {
@@ -150,6 +154,10 @@ function App() {
   }
 
   function toggleFollow(slug: string) {
+    request.current?.abort();
+    setLoading(false);
+    setResult(null);
+    setSubmitted(null);
     const next = following.includes(slug) ? following.filter(value => value !== slug) : [...following,slug];
     setFollowing(next);
     try { localStorage.setItem('star-brands', JSON.stringify(next)); } catch {}
@@ -161,7 +169,7 @@ function App() {
       : current.length < 3 ? [...current, product] : current);
   }
 
-  const shown = (result?.confirmed.length ?? 0) + (result?.unknownDelivery.length ?? 0);
+  const shown = (result?.confirmed.length ?? 0) + (result?.unknownDelivery.length ?? 0) + (result?.lastSeen.length ?? 0);
   const pendingEdits = submitted && Object.keys(initial).some(key => form[key as keyof SearchForm] !== submitted[key as keyof SearchForm]);
   const chips = result ? Object.entries(result.filters).flatMap(([key,value]) => {
     if (value == null || key === 'priceMode') return [];
@@ -258,10 +266,11 @@ function App() {
         {chips.length > 0 && <div className="filter-chips" aria-label="Applied filters">{chips.map((chip,index) => <span key={chip+index}>{chip}</span>)}</div>}
         {result && submitted?.sort === 'recommended' && result.total > 0 && <details className="ranking-note">
           <summary>Why these items first?</summary>
-          <p>Every item meets the applied filters. Direct audience and product name matches lead, then items with more recorded details. The first page brings in different brands among equally relevant matches.</p>
+          <p>Every item meets the applied filters. Direct audience and product name matches lead. Followed brands are preferred among equally relevant items, then items with more recorded details. The first page brings in different brands among equally relevant matches.</p>
         </details>}
         {pendingEdits && <p className="source-notice">You’ve changed the filters. Search again to update these results.</p>}
         {result?.confirmed.length ? cards(result.confirmed) : null}
+        {result?.lastSeen.length ? <div className="delivery-group"><h3>Last seen at the brand</h3><p>Price and availability need checking. Delivery costs may also apply.</p>{cards(result.lastSeen)}</div> : null}
         {result?.unknownDelivery.length ? <div className="delivery-group"><h3>Delivery cost unknown</h3>
           <p>These item prices are within your budget. Check shipping with the brand before deciding.</p>
           {cards(result.unknownDelivery)}

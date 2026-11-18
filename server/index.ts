@@ -40,6 +40,7 @@ app.post('/api/v1/search',async(req,res)=>{
  const filters: Filters = titleSearch ? {title: query.trim() || undefined, priceMode:'delivered'} : parseQuery(query);
  const requested = req.body?.filters || {};
  const page = Number.isSafeInteger(req.body?.page) && req.body.page >= 1 && req.body.page <= 2000 ? req.body.page : 1;
+ const favouriteBrands = Array.isArray(req.body?.favouriteBrands) ? req.body.favouriteBrands.filter((value: unknown): value is string => typeof value === 'string' && value.length <= 80).slice(0, 40) : [];
  const sort = req.body?.sort === 'price-desc' || req.body?.sort === 'price-asc' ? req.body.sort : 'recommended';
  if (requested.audience === 'men' || requested.audience === 'women' || requested.audience === 'unisex') {
    filters.audience = requested.audience;
@@ -65,7 +66,7 @@ app.post('/api/v1/search',async(req,res)=>{
     products = products.map(product => !product.fit && /\bover[- ]?sized\b/i.test(product.title)
       ? {...product, fit:'oversized'} : product);
   }
-  res.json({mode,filters,...search(products,filters,page,sort),coverage:preview?'Prices and stock are from the dated catalogue snapshots. Check the brand for current details.':supabase?'Published catalogue. Check the brand for current details.':'Fictional examples only. No live products.'});
+  res.json({mode,filters,...search(products,filters,page,sort,favouriteBrands),coverage:preview?'Prices and stock are from the dated catalogue snapshots. Check the brand for current details.':supabase?'Published catalogue. Check the brand for current details.':'Fictional examples only. No live products.'});
  }catch{res.status(503).json({error:'Catalogue is temporarily unavailable. Please try again.'});}
 });
 app.listen(Number(process.env.PORT||3001),'127.0.0.1',()=>console.log('Local API listening on 127.0.0.1'));

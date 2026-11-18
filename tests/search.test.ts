@@ -64,3 +64,59 @@ test('audience eligibility and recommended ordering preserve filters and diversi
   assert.equal(search(products, filters, 1, 'price-asc').confirmed[0].id, 'shared');
   assert.deepEqual(search(products,{audience:'unisex'}).confirmed.map(item=>item.id), ['shared']);
 });
+
+test('design terms use saved product text without relaxing variant filters', () => {
+  const product = {...demo[0], id:'lightning', title:'Boxy Hoodie',
+    description_text:'A red lightning graphic on this boxy garment.',
+    variants:[{...demo[0].variants[0], available:true, colour:'black', size:'M', price_minor:120000}]};
+  const filters = {...parseQuery('black thunder boxy hoodie size M under 1500'), priceMode:'item' as const};
+  assert.deepEqual(unsupportedQuery('black thunder boxy hoodie size M under 1500'), []);
+  assert.deepEqual(search([product], filters).confirmed.map(item => item.id), ['lightning']);
+  assert.equal(search([product], {...filters, colour:'red'}).total, 0);
+  assert.equal(search([{...product, description_text:null}], filters).total, 0);
+  assert.deepEqual(unsupportedQuery('black leather thunder hoodie'), ['leather']);
+});
+
+test('caps can be searched using their catalogue category', () => {
+  assert.equal(parseQuery('caps').category, 'cap');
+  assert.deepEqual(unsupportedQuery('caps'), []);
+});
+
+test('exact design terms rank ahead of related design terms without changing price sorting', () => {
+  const base = {...demo[0], variants:[{...demo[0].variants[0], available:true, price_minor:100000}]};
+  const related = {...base, id:'related', title:'Lightning hoodie'};
+  const exact = {...base, id:'exact', title:'Thunder hoodie', variants:[{...base.variants[0], price_minor:110000}]};
+  const filters = {...parseQuery('thunder hoodie'), priceMode:'item' as const};
+  assert.deepEqual(search([related, exact], filters).confirmed.map(p => p.id), ['exact','related']);
+  assert.deepEqual(search([related, exact], filters, 1, 'price-asc').confirmed.map(p => p.id), ['related','exact']);
+});
+
+test('favourite brands break relevance ties without changing cheapest order', () => {
+  const base = {...demo[0], variants:[{...demo[0].variants[0], available:true, price_minor:100000}]};
+  const cheap = {...base, id:'cheap', brand:'A', title:'Thunder hoodie'};
+  const favourite = {...base, id:'favourite', brand:'B', title:'Thunder hoodie', variants:[{...base.variants[0], price_minor:110000}]};
+  const related = {...base, id:'related', brand:'B', title:'Lightning hoodie'};
+  const filters = {...parseQuery('thunder hoodie'), priceMode:'item' as const};
+  assert.deepEqual(search([cheap, favourite, related], filters, 1, 'recommended', ['B']).confirmed.map(p => p.id), ['favourite','cheap','related']);
+  assert.deepEqual(search([cheap, favourite, related], filters, 1, 'price-asc', ['B']).confirmed.map(p => p.id), ['cheap','related','favourite']);
+});
+
+test('old or incomplete observations appear only as last-seen items', () => {
+  const p = {...demo[0], synthetic:false, variants:[{...demo[0].variants[0], available:true}]};
+  const result = search([p], {category:'hoodie', priceMode:'item'});
+  assert.equal(result.confirmed.length, 0);
+  assert.equal(result.lastSeen.length, 1);
+  const now = new Date().toISOString();
+  const fresh = {...p, variants:[{...p.variants[0], price_checked_at:now, stock_checked_at:now, preorder:false, fulfilment_status:'ready'}]};
+  assert.equal(search([fresh], {category:'hoodie', priceMode:'item'}).confirmed.length, 1);
+  const preorder = {...fresh, variants:[{...fresh.variants[0], preorder:true}]};
+  assert.equal(search([preorder], {category:'hoodie', priceMode:'item'}).lastSeen.length, 1);
+});
+
+test('a fresh eligible variant takes precedence over a cheaper stale variant', () => {
+  const now = new Date().toISOString();
+  const stale = {...demo[0].variants[0], id:'stale', available:true, price_minor:50000};
+  const fresh = {...stale, id:'fresh', price_minor:80000, price_checked_at:now, stock_checked_at:now, preorder:false, fulfilment_status:'ready'};
+  const product = {...demo[0], synthetic:false, variants:[stale,fresh]};
+  assert.equal(search([product], {priceMode:'item'}).confirmed[0].selected_variant.id, 'fresh');
+});
