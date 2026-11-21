@@ -2,7 +2,7 @@ import categoryRegistry from '../catalogue-categories.json';
 
 export type Variant = { id: string; size: string | null; colour: string | null; price_minor: number; available: boolean | null; price_checked_at?: string | null; stock_checked_at?: string | null; preorder?: boolean | null; fulfilment_status?: string | null };
 export type Audience = 'men' | 'women' | 'unisex';
-export type Product = { id: string; brand: string; title: string; description_text?: string | null; category: string; fit: string | null; fits?: string[]; themes: string[]; print_themes?: string[]; theme_evidence: string | null; variants: Variant[]; observed_at: string | null; image_url: string | null; source_url: string | null; synthetic: boolean; audience?: Audience | null; audiences?: Audience[]; audience_evidence?: {audience: Audience; field: 'tag' | 'title'; value: string} | null };
+export type Product = { id: string; brand: string; brand_slug?: string; title: string; description_text?: string | null; category: string; fit: string | null; fits?: string[]; themes: string[]; print_themes?: string[]; theme_evidence: string | null; variants: Variant[]; observed_at: string | null; image_url: string | null; source_url: string | null; synthetic: boolean; audience?: Audience | null; audiences?: Audience[]; audience_evidence?: {audience: Audience; field: 'tag' | 'title'; value: string} | null; garment_colour_evidence?: {value_text: string; excerpt: string} };
 export type Filters = { brand?: string; audience?: Audience; category?: string; colour?: string; size?: string; theme?: string; printTheme?: string; fit?: string; budget?: number; priceMode?: 'item' | 'delivered'; title?: string; design?: string[] };
 export type Sort = 'recommended' | 'price-asc' | 'price-desc';
 export const PAGE_SIZE = 5;
@@ -112,10 +112,12 @@ export function search(products: Product[], filters: Filters, page = 1, sort: So
       const words = new Set(name);
       if (!tokens.every(token => words.has(token))) return [];
     }
+    const garmentColour = product.garment_colour_evidence?.value_text;
     const variant = product.variants.reduce<Variant | undefined>((best, candidate) => {
+      const colour = candidate.colour ?? garmentColour;
       if (candidate.available !== true || !Number.isSafeInteger(candidate.price_minor) || candidate.price_minor < 0 ||
           (filters.size && (!candidate.size || sizeKey(candidate.size) !== sizeKey(filters.size))) ||
-          (filters.colour && (!candidate.colour || colourKey(candidate.colour) !== colourKey(filters.colour))) ||
+          (filters.colour && (!colour || colourKey(colour) !== colourKey(filters.colour))) ||
           (filters.budget !== undefined && candidate.price_minor > filters.budget)) return best;
       if (!best) return candidate;
       const candidateCurrent = isCurrent(candidate, product.synthetic);
@@ -127,7 +129,7 @@ export function search(products: Product[], filters: Filters, page = 1, sort: So
     const title = name.join(' ');
     const titleMatch = phrase && title === phrase ? 2 : phrase && ` ${title} `.includes(` ${phrase} `) ? 1 : 0;
     return [{
-      product: {...product, selected_variant: variant,
+      product: {...product, selected_variant: variant.colour == null && garmentColour ? {...variant, colour:garmentColour} : variant,
         match_reason: filters.design?.length
           ? (exactDesign === filters.design.length ? 'Design terms found in product details' : 'Related design found in product details')
           : undefined},

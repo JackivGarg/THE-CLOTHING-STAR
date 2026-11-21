@@ -20,3 +20,29 @@ export function extractProductColour(input,brand){
  const conflict=distinct.length>1||ambiguous.length>0, first=distinct[0],all=[...distinct,...ambiguous];
  return [{store_slug:brand,external_product_id:input.external_product_id??input.source_product_id,attribute_key:conflict?'product_colour_conflict':'product_colour',value_text:conflict?all.map(x=>x.value).join(' | '):first.value,source_kind:'description',source_url:input.source_url,source_field:'description_text',excerpt:conflict?all.map(x=>x.excerpt).join(' | '):first.excerpt,evidence_level:conflict?'ambiguous':'explicit',review_status:'pending',observed_at:input.observed_at,rule_version:PRODUCT_COLOUR_RULE_VERSION}];
 }
+
+export function hasUncolouredSizeOnlyVariants(variants) {
+  return variants.length > 0 && variants.every(variant => {
+    const options = variant.source_options;
+    if (!options || typeof options !== 'object' || Array.isArray(options)) return false;
+    const entries = Object.entries(options);
+    return entries.length === 1 && entries[0][0].trim().toLowerCase() === 'size'
+      && typeof entries[0][1] === 'string' && entries[0][1].trim().length > 0
+      && !variant.colour;
+  });
+}
+
+const singleGarments = new Set([
+  'tee', 'shirt', 'vest', 'hoodie', 'sweatshirt', 'sweater', 'jacket',
+  'jeans', 'trousers', 'shorts', 'skirt', 'dress',
+]);
+
+export function previewBonkersGarmentColour(product, category) {
+  if (product.brand_slug !== 'bonkers-corner' || !singleGarments.has(category)
+    || !hasUncolouredSizeOnlyVariants(product.variants)) return undefined;
+  const [evidence] = extractProductColour(product, product.brand_slug);
+  if (evidence?.attribute_key !== 'product_colour') return undefined;
+  // Bonkers places this field immediately before the garment's country of production.
+  return /\bcolou?r\s*:\s*[a-z ]+?\s+country of production\s*:/i.test(evidence.excerpt)
+    ? evidence : undefined;
+}

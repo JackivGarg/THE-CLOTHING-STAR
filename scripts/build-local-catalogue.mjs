@@ -6,6 +6,7 @@ import {previewCategory as category} from './preview-category.mjs';
 import {previewAudience} from './preview-audience.mjs';
 import {extractAttributeEvidence} from './attribute-evidence.mjs';
 import {mergePreviewRefresh} from './merge-preview-refresh.mjs';
+import {previewBonkersGarmentColour} from './product-colour-evidence.mjs';
 const root='data/catalogue';
 const registry=JSON.parse(await fs.readFile('brand-registry.json','utf8'));
 const rows=new Map();
@@ -59,6 +60,27 @@ for (const brand of registry.brands) {
  }
 }
 function httpsUrl(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null;}}
-const products=[...rows.values()].map(r=>{const images=(r.images??[]).map(im=>({url:httpsUrl(im.src),alt:im.alt??null,source_id:im.id??null,variant_ids:im.variant_ids??[],position:im.position??null})).filter(im=>im.url);const evidence=extractAttributeEvidence(r,{brand:r.brand_slug});const themes=[...new Set(evidence.filter(e=>e.attribute_key==='theme').map(e=>e.value_text))];const printEvidence=evidence.filter(e=>e.attribute_key==='print_theme');const fits=[...new Set(evidence.filter(e=>e.attribute_key==='fit'&&e.evidence_level==='explicit').map(e=>e.value_text))];return {id:r.brand_slug+':'+r.external_product_id,brand:r.brand,brand_slug:r.brand_slug,title:r.title,description_text:r.description_text??null,category:category(r),...previewAudience(r),fit:null,fits,themes,print_themes:[...new Set(printEvidence.map(e=>e.value_text))],theme_evidence:printEvidence[0]?.excerpt??null,variants:r.variants,observed_at:r.observed_at,image_url:httpsUrl(r.source_featured_image_url)??images[0]?.url??null,images,source_url:r.source_url,synthetic:false};});
+const products = [...rows.values()].map(record => {
+ const images = (record.images ?? []).map(image => ({
+  url:httpsUrl(image.src), alt:image.alt ?? null, source_id:image.id ?? null,
+  variant_ids:image.variant_ids ?? [], position:image.position ?? null,
+ })).filter(image => image.url);
+ const evidence = extractAttributeEvidence(record, {brand:record.brand_slug});
+ const themes = [...new Set(evidence.filter(item => item.attribute_key === 'theme').map(item => item.value_text))];
+ const prints = evidence.filter(item => item.attribute_key === 'print_theme');
+ const fits = [...new Set(evidence.filter(item => item.attribute_key === 'fit' && item.evidence_level === 'explicit').map(item => item.value_text))];
+ const garment = category(record);
+ return {
+  id:record.brand_slug + ':' + record.external_product_id,
+  brand:record.brand, brand_slug:record.brand_slug, title:record.title,
+  description_text:record.description_text ?? null, category:garment, ...previewAudience(record),
+  fit:null, fits, themes, print_themes:[...new Set(prints.map(item => item.value_text))],
+  theme_evidence:prints[0]?.excerpt ?? null,
+  garment_colour_evidence:previewBonkersGarmentColour(record, garment),
+  variants:record.variants, observed_at:record.observed_at,
+  image_url:httpsUrl(record.source_featured_image_url) ?? images[0]?.url ?? null,
+  images, source_url:record.source_url, synthetic:false,
+ };
+});
 await fs.writeFile(path.join(root,'local-preview.json'),JSON.stringify({created_at:new Date().toISOString(),products}));
 console.log(JSON.stringify({products:products.length,variants:products.reduce((n,p)=>n+p.variants.length,0)}));

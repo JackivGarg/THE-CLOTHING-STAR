@@ -35,3 +35,13 @@ The read-only `scripts/report-offer-discrepancies.sql` compares each normalized 
 Three previously unknown JNORSS products were classified from individually checked product text. Another 65 explicit co-ord sets and 89 explicitly named Bonkers caps were classified using narrow title rules. The merchant-type mapping then classified 41 Everdion trousers, 40 Everdion co-ord sets, 19 WTFlex caps and five Powerlook bags. Each update applies only to an unknown category and records accepted evidence with its rule version. Existing classifications remain in place.
 
 The local preview uses the same reviewed Everdion, WTFlex and Powerlook type mappings. It additionally extracts explicit garment-fit evidence for private preview search. The hosted search reads normalized fit values and has not yet been connected to those preview fit projections.
+
+## Follow-up on 21 November 2026
+
+Bonkers staging supplied 20,214 historical offer observations. The backfill matched them to the exact normalized variants and saved them with the original 7 November India timestamps and run references. A second execution inserted zero rows. Supabase now has 86,262 private observations, with zero accepted offers and zero published products.
+
+All 1,947 report discrepancies match their exact retained staging values, timestamps and identities. This verifies transfer integrity. Independent offer review and publication are pending.
+
+The private preview uses the explicit Bonkers garment colour field for 2,473 single-garment styles and 14,957 size-only variants. The rule excludes sets, ambiguous descriptions and products with a colour option. A black Bonkers hoodie in M under ₹1,500 returns four last-seen matches. A separate brand catalogue view includes the unavailable styles and offers a direct path to the existing shopping filters. Comparison distinguishes variants of the same style.
+
+Automated section requests to JNORSS and WTFlex returned HTTP 429. No new section memberships were imported. The live review of the JNORSS Hoodies section showed 35 listed items and does not establish an audience label. [Merchant hoodies section](https://www.jnorss.in/collections/hoodies)

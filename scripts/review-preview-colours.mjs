@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import {extractProductColour} from './product-colour-evidence.mjs';
+import {extractProductColour, hasUncolouredSizeOnlyVariants} from './product-colour-evidence.mjs';
 
 // Review candidates from the same saved records that the private preview uses.
 // A candidate still needs source and option checks before it can be accepted.
@@ -27,15 +27,7 @@ for (const product of preview.products) {
     continue;
   }
   summary.explicit_colour++;
-  const sizeOnly = product.variants.length > 0 && product.variants.every(variant => {
-    const options = variant.source_options;
-    if (!options || typeof options !== 'object' || Array.isArray(options)) return false;
-    const entries = Object.entries(options);
-    return entries.length === 1 && entries[0][0].trim().toLowerCase() === 'size'
-      && typeof entries[0][1] === 'string' && entries[0][1].trim().length > 0
-      && !variant.colour;
-  });
-  if (!sizeOnly) continue;
+  if (!hasUncolouredSizeOnlyVariants(product.variants)) continue;
   summary.size_only_candidates++;
   summary.candidate_variants += product.variants.length;
   report.candidates.push({

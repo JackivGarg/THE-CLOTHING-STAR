@@ -3,7 +3,7 @@ import express from 'express';
 import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { demo } from './demo';
-import { hasMultipleChoices, parseQuery, search, unsupportedQuery, type Filters, type Product } from './search';
+import { hasMultipleChoices, PAGE_SIZE, parseQuery, search, unsupportedQuery, type Filters, type Product } from './search';
 const app=express(); app.use(express.json({limit:'8kb'}));
 const previewPath='data/catalogue/local-preview.json';
 const preview=process.env.NODE_ENV!=='production' && process.env.CATALOGUE_LOCAL_PREVIEW!=='false' && fs.existsSync(previewPath)?JSON.parse(fs.readFileSync(previewPath,'utf8')) as {created_at:string;products:Product[]}:null;
@@ -19,6 +19,46 @@ app.get('/api/v1/brands',async(_req,res)=>{
   const {data,error}=await supabase.from('brands').select('slug,name').order('name');if(error)throw error;
   res.json({mode:'catalogue',brands:data??[]});
  }catch{res.status(503).json({error:'Brands are temporarily unavailable.'});}
+});
+app.get('/api/v1/brands/:slug/catalogue', async (req, res) => {
+ const page = Number(req.query.page ?? 1);
+ if (!Number.isSafeInteger(page) || page < 1 || page > 2000) {
+   res.status(400).json({error:'Choose a valid catalogue page.'});
+   return;
+ }
+ const offset = (page - 1) * PAGE_SIZE;
+ try {
+   let rows: Product[];
+   let total: number;
+   if (supabase && !preview) {
+     const {data: brand, error: brandError} = await supabase.from('brands').select('name')
+       .eq('slug', req.params.slug).eq('active', true).maybeSingle();
+     if (brandError) throw brandError;
+     if (!brand) {
+       res.status(404).json({error:'This brand has no published catalogue.'});
+       return;
+     }
+     const {data, count, error} = await supabase.from('public_catalogue')
+       .select('id,brand,title,category,source_url,image_url,observed_at,variants,synthetic', {count:'exact'})
+       .eq('brand', brand.name).order('id').range(offset, offset + PAGE_SIZE - 1);
+     if (error) throw error;
+     rows = data as Product[];
+     total = count ?? 0;
+   } else {
+     const catalogue = (preview?.products ?? demo).filter(product =>
+       (product.brand_slug ?? product.brand.toLowerCase().replace(/[^a-z0-9]+/g, '-')) === req.params.slug);
+     total = catalogue.length;
+     rows = catalogue.sort((a, b) => a.id.localeCompare(b.id)).slice(offset, offset + PAGE_SIZE);
+   }
+   const styles = rows.map(({id, brand, title, category, source_url, image_url, observed_at, variants}) => ({
+     id, brand, title, category, source_url, image_url, observed_at,
+     last_stock: variants.some(variant => variant.available === true) ? 'some_available'
+       : variants.length > 0 && variants.every(variant => variant.available === false) ? 'unavailable' : 'unknown',
+   }));
+   res.json({styles, total, page, hasMore: offset + styles.length < total && styles.length > 0});
+ } catch {
+   res.status(503).json({error:'This brand’s catalogue is temporarily unavailable.'});
+ }
 });
 app.post('/api/v1/search',async(req,res)=>{
  const query = req.body?.query;

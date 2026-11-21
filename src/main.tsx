@@ -11,6 +11,10 @@ type Audience = 'men' | 'women' | 'unisex';
 type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean; audience?: Audience | null; audiences?: Audience[]; match_reason?: string};
 type Results = {mode: string; filters: Record<string, string | number>; confirmed: Product[]; unknownDelivery: Product[]; lastSeen: Product[]; coverage: string; total: number; page: number; hasMore: boolean};
 type Brand = {slug: string; name: string; product_count?: number};
+type Style = Pick<Product, 'id' | 'title' | 'category' | 'image_url' | 'source_url' | 'observed_at'> & {
+  last_stock: 'some_available' | 'unavailable' | 'unknown';
+};
+type BrandCatalogue = {styles: Style[]; total: number; hasMore: boolean};
 type SearchForm = {
   query: string; queryMode: 'requirements' | 'title'; audience: Audience | ''; category: string; brand: string; size: string;
   colour: string; budget: string; priceMode: 'delivered' | 'item'; sort: 'recommended' | 'price-asc' | 'price-desc';
@@ -23,16 +27,68 @@ const categories: Record<string, string> = Object.fromEntries(
 const colours = ['Black','White','Blue','Red','Green','Brown','Pink','Beige','Grey','Navy','Cream','Olive','Purple','Yellow','Orange','Maroon','Indigo','Charcoal'];
 const money = (minor: number) => '₹' + (minor / 100).toLocaleString('en-IN');
 const motion = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+const sameChoice = (left: Product, right: Product) =>
+  left.id === right.id && left.selected_variant.id === right.selected_variant.id;
 
 function Arrow() {
   return <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.5"/></svg>;
 }
 
-function ProductVisual({product}: {product: Product}) {
+function ProductVisual({product}: {product: Pick<Product, 'title' | 'category' | 'image_url'>}) {
   const [failed, setFailed] = useState(false);
   return product.image_url && !failed
     ? <img className="product-photo" src={product.image_url} alt={product.title} onError={() => setFailed(true)} loading="lazy"/>
     : <><Garment category={product.category ?? 'tee'} tone="#9da595"/><span>Illustration · photo unavailable</span></>;
+}
+
+function AllStyles({brand, onSearch}: {brand: Brand; onSearch: () => void}) {
+  const [page, setPage] = useState(1);
+  const [catalogue, setCatalogue] = useState<BrandCatalogue | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/v1/brands/' + encodeURIComponent(brand.slug) + '/catalogue?page=' + page, {signal:controller.signal})
+      .then(async response => {
+        if (!response.ok) throw new Error('Catalogue unavailable');
+        const data: BrandCatalogue = await response.json();
+        if (!controller.signal.aborted) setCatalogue(data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setError('Couldn’t load this catalogue page.');
+      });
+    return () => controller.abort();
+  }, [brand.slug, page]);
+
+  function changePage(next: number) {
+    setCatalogue(null);
+    setError('');
+    setPage(next);
+    document.getElementById('brand-styles-title')?.focus();
+  }
+
+  return <section className="brand-styles" aria-labelledby="brand-styles-title" aria-busy={!catalogue && !error}>
+    <div className="section-heading">
+      <div><h2 id="brand-styles-title" tabIndex={-1}>{brand.name} · All catalogued styles</h2>
+        {catalogue && <p>{catalogue.total.toLocaleString('en-IN')} styles · Includes styles without saved stock</p>}</div>
+      <button className="finder-clear" onClick={onSearch}>Shop this brand <Arrow/></button>
+    </div>
+    {error ? <p role="alert">{error}</p> : !catalogue ? <p role="status">Loading styles…</p> : null}
+    {catalogue?.styles.length ? <div className="product-grid">{catalogue.styles.map(style => <article className="product" key={style.id}>
+      <div className="product-art"><ProductVisual product={style}/></div>
+      <h3>{style.title}</h3>
+      <p className="variant-info">{style.last_stock === 'unavailable' ? 'Unavailable in saved records'
+        : style.last_stock === 'some_available' ? 'Sizes were available in saved records' : 'Stock status unknown'}</p>
+      {style.observed_at && <p className="checked-time">Listing last seen {new Date(style.observed_at).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric', timeZone:'Asia/Kolkata'})}</p>}
+      {style.source_url && <a className="merchant-link" href={style.source_url} target="_blank" rel="noopener noreferrer">View at brand <Arrow/></a>}
+    </article>)}</div> : null}
+    {catalogue?.total === 0 && <p>There are no catalogued styles for this brand.</p>}
+    {(page > 1 || catalogue?.hasMore) && <nav className="results-footer" aria-label="Catalogue pages">
+      <button className="finder-clear" disabled={page === 1} onClick={() => changePage(page - 1)}>Previous</button>
+      <span>Page {page}</span>
+      <button className="finder-clear" disabled={!catalogue?.hasMore} onClick={() => changePage(page + 1)}>Next</button>
+    </nav>}
+  </section>;
 }
 
 function ProductCard({product, added, full, toggle, saved, toggleSaved}: {product: Product; added: boolean; full: boolean; toggle: () => void; saved: boolean; toggleSaved: () => void}) {
@@ -43,7 +99,7 @@ function ProductCard({product, added, full, toggle, saved, toggleSaved}: {produc
     <h3>{product.title}</h3>
     {product.match_reason && <p>{product.match_reason}</p>}
     <p className="product-price">{money(variant.price_minor)} <small>item price</small></p>
-    <p className="variant-info">{[variant.size && 'Size ' + variant.size, variant.colour].filter(Boolean).join(' · ') || 'Size and colour unavailable'}</p>
+    <p className="variant-info">{variant.size ? 'Size ' + variant.size : 'Size unknown'} · {variant.colour || 'Colour unknown'}</p>
     {variant.source_options && Object.keys(variant.source_options).length > 1 && <p className="variant-info">{Object.entries(variant.source_options).map(([name,value]) => name + ': ' + value).join(' · ')}</p>}
     <p className="checked-time">{(variant.observed_at ?? product.observed_at) ? 'Last observed ' + new Date((variant.observed_at ?? product.observed_at)!).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'}) : 'Stock date unavailable'}</p>
     {product.source_url && !product.synthetic && <p className="checked-time">Confirm your options and availability on the brand’s site.</p>}
@@ -61,6 +117,7 @@ function App() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [brandsError, setBrandsError] = useState('');
   const [activeBrand, setActiveBrand] = useState('');
+  const [catalogueBrand, setCatalogueBrand] = useState<Brand | null>(null);
   const [result, setResult] = useState<Results | null>(null);
   const [submitted, setSubmitted] = useState<SearchForm | null>(null);
   const [error, setError] = useState('');
@@ -177,9 +234,9 @@ function App() {
   function toggleSaved(product: Product) {
     if (!product.selected_variant.id) return;
     setSavedProducts(current => {
-      const exists = current.some(item => item.id === product.id && item.selected_variant.id === product.selected_variant.id);
+      const exists = current.some(item => sameChoice(item, product));
       const next = exists
-        ? current.filter(item => item.id !== product.id || item.selected_variant.id !== product.selected_variant.id)
+        ? current.filter(item => !sameChoice(item, product))
         : [...current, product];
       try { localStorage.setItem('star-saved-products', JSON.stringify(next)); } catch {}
       return next;
@@ -187,8 +244,8 @@ function App() {
   }
 
   function toggleCompare(product: Product) {
-    setCompare(current => current.some(item => item.id === product.id)
-      ? current.filter(item => item.id !== product.id)
+    setCompare(current => current.some(item => sameChoice(item, product))
+      ? current.filter(item => !sameChoice(item, product))
       : current.length < 3 ? [...current, product] : current);
   }
 
@@ -208,8 +265,8 @@ function App() {
 
   function cards(products: Product[]) {
     return <div className="product-grid">{products.map(product => <ProductCard key={product.id} product={product}
-      added={compare.some(item => item.id === product.id)} full={compare.length >= 3} toggle={() => toggleCompare(product)}
-      saved={savedProducts.some(item => item.id === product.id && item.selected_variant.id === product.selected_variant.id)}
+      added={compare.some(item => sameChoice(item, product))} full={compare.length >= 3} toggle={() => toggleCompare(product)}
+      saved={savedProducts.some(item => sameChoice(item, product))}
       toggleSaved={() => toggleSaved(product)}/>)}</div>;
   }
 
@@ -317,8 +374,16 @@ function App() {
       <div className="brand-grid">{brands.map(brand => <article id={'brand-'+brand.slug} className={activeBrand === brand.slug ? 'brand-tile selected' : 'brand-tile'} key={brand.slug}>
         <div><h2>{brand.name}</h2><button className="follow-button" aria-pressed={following.includes(brand.slug)} onClick={() => toggleFollow(brand.slug)}>{following.includes(brand.slug) ? 'Following' : 'Follow'}</button></div>
         <p>{brand.product_count != null ? brand.product_count.toLocaleString('en-IN') + ' collected products' : 'Explore this label'}</p>
-        <button className="text-link" onClick={() => browseBrand(brand.slug)}>Explore catalogue <Arrow/></button>
+        <button className="text-link" onClick={() => {
+          setCatalogueBrand(brand);
+          requestAnimationFrame(() => {
+            const title = document.getElementById('brand-styles-title');
+            title?.focus({preventScroll:true});
+            title?.scrollIntoView({behavior:motion(), block:'start'});
+          });
+        }}>All catalogued styles <Arrow/></button>
       </article>)}</div>
+      {catalogueBrand && <AllStyles key={catalogueBrand.slug} brand={catalogueBrand} onSearch={() => browseBrand(catalogueBrand.slug)}/>}
       <div className="radar-future"><span className="radar-dot"/><div><h2>Weekly activity</h2><p>Weekly drop and price history is not available yet.</p></div></div>
     </main>}
     {savedProducts.length > 0 && <details className="comparison" aria-label="Saved products">
@@ -336,10 +401,11 @@ function App() {
     {compare.length > 0 && <details className="comparison" aria-label="Product comparison">
       <summary>Compare selected items <span>{compare.length}/3</span></summary>
       <div className="comparison-heading"><h2>Compare your picks</h2><button onClick={() => setCompare([])}>Clear all</button></div>
-      <div className="comparison-items">{compare.map(product => <article key={product.id}>
+      <div className="comparison-items">{compare.map(product => <article key={product.id + ':' + product.selected_variant.id}>
         <button className="remove-item" onClick={() => toggleCompare(product)} aria-label={'Remove '+product.title}>×</button>
         <span>{product.brand}</span><h3>{product.title}</h3><b>{money(product.selected_variant.price_minor)}</b>
         <p>{product.selected_variant.size || 'Size unknown'} · {product.selected_variant.colour || 'Colour unknown'}</p>
+        {product.selected_variant.source_options && <p>{Object.entries(product.selected_variant.source_options).map(([name,value]) => name + ': ' + value).join(' · ')}</p>}
         <small>Delivery / returns: check brand</small>
         {product.source_url && <a href={product.source_url} target="_blank" rel="noopener noreferrer">View at brand <Arrow/></a>}
       </article>)}</div>

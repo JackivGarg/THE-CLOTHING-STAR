@@ -89,3 +89,7 @@ body:has(.comparison) footer { padding-bottom: 90px; }
   .product-grid { grid-template-columns: 1fr; }
   .site-header { flex-wrap: wrap; height: auto; gap: 4px; }
 }
+.brand-styles { margin-block: 3rem; }
+.brand-styles .section-heading { margin-bottom: 1.5rem; }
+.brand-styles .product h3 { margin-top: .65rem; }
+.brand-styles .merchant-link { display: inline-flex; }
