@@ -5,19 +5,40 @@ import { createClient } from '@supabase/supabase-js';
 import { demo } from './demo';
 import { buildSearchIndex, hasMultipleChoices, PAGE_SIZE, parseQuery, search, unsupportedQuery, type Filters, type Product } from './search';
 import { interpretQuery } from './shopper-query';
+import { applyReviewedCatalogue, type ReviewSnapshot } from './catalogue-reviews';
+import { publishedMarketplace } from './published-marketplace';
 const app=express(); app.use(express.json({limit:'8kb'}));
 const previewPath=process.env.CATALOGUE_PREVIEW_PATH || 'data/catalogue/local-preview.json';
 const preview=process.env.NODE_ENV!=='production' && process.env.CATALOGUE_LOCAL_PREVIEW!=='false' && fs.existsSync(previewPath)?JSON.parse(fs.readFileSync(previewPath,'utf8')) as {created_at:string;products:Product[]}:null;
-const mode=preview?'local-preview':process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY?'catalogue':'demo';
+const serverKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const mode=preview?'local-preview':process.env.SUPABASE_URL&&(process.env.SUPABASE_PUBLISHABLE_KEY || serverKey)?'catalogue':'demo';
 if(preview)app.use((req,res,next)=>{const origin=req.get('origin');if(origin){try{if(!['localhost','127.0.0.1','[::1]'].includes(new URL(origin).hostname)){res.status(403).json({error:'Private preview is available from this computer only.'});return;}}catch{res.status(403).end();return;}}next();});
 const supabaseKey=process.env.SUPABASE_PUBLISHABLE_KEY;
 const supabase=process.env.SUPABASE_URL&&supabaseKey?createClient(process.env.SUPABASE_URL,supabaseKey,{auth:{persistSession:false}}):null;
-const localProducts = preview?.products ?? demo;
+const loadPublishedMarketplace = !preview && process.env.SUPABASE_URL && serverKey
+  ? publishedMarketplace(createClient(process.env.SUPABASE_URL, serverKey, {auth:{persistSession:false}})) : null;
+const reviewPath = process.env.CATALOGUE_REVIEW_PATH ?? 'data/marketplace-reviews.json';
+const reviews = preview && fs.existsSync(reviewPath) ? JSON.parse(fs.readFileSync(reviewPath, 'utf8')) as ReviewSnapshot : null;
+const reviewedPreview = preview && reviews ? applyReviewedCatalogue(preview.products, reviews) : null;
+const localProducts = reviewedPreview?.products ?? preview?.products ?? demo;
 const localIndex = buildSearchIndex(localProducts);
-app.get('/api/v1/status',(_req,res)=>res.json({mode,cache:'disabled',product_count:preview?.products.length??null,source:preview?'Verified local collection snapshots; private review preview.':'Published Supabase catalogue',snapshot_created_at:preview?.created_at??null}));
+app.get('/api/v1/status',(_req,res)=>res.json({mode,cache:loadPublishedMarketplace?'30-second published snapshot':'disabled',product_count:preview?localProducts.length:null,source:preview?'Verified local collection snapshots with optional reviewed offers.':'Published Supabase catalogue',snapshot_created_at:preview?.created_at??null,
+ reviewed_catalogue:reviewedPreview ? {...reviewedPreview.counts, exported_at:reviews?.exported_at} : null,
+ hosted_reviewed_search:!!loadPublishedMarketplace}));
 app.get('/api/v1/brands',async(_req,res)=>{
  try {
-  if(preview){const groups=new Map<string,{slug:string;name:string;product_count:number}>();for(const p of preview.products){const slug=(p as Product & {brand_slug:string}).brand_slug;const b=groups.get(slug)??{slug,name:p.brand,product_count:0};b.product_count++;groups.set(slug,b);}res.json({mode,brands:[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name))});return;}
+  if (preview || loadPublishedMarketplace) {
+    const products = loadPublishedMarketplace ? (await loadPublishedMarketplace()).products : localProducts;
+    const groups = new Map<string,{slug:string; name:string; product_count:number}>();
+    for (const product of products) {
+      const slug = product.brand_slug ?? product.brand.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const group = groups.get(slug) ?? {slug, name:product.brand, product_count:0};
+      group.product_count++;
+      groups.set(slug, group);
+    }
+    res.json({mode, brands:[...groups.values()].sort((a,b) => a.name.localeCompare(b.name))});
+    return;
+  }
   if(!supabase){const names=[...new Set(demo.map(p=>p.brand))];res.json({mode:'demo',brands:names.map(name=>({name,slug:name.toLowerCase().replace(/[^a-z0-9]+/g,'-')}))});return;}
   const {data,error}=await supabase.from('brands').select('slug,name').order('name');if(error)throw error;
   res.json({mode:'catalogue',brands:data??[]});
@@ -33,7 +54,12 @@ app.get('/api/v1/brands/:slug/catalogue', async (req, res) => {
  try {
    let rows: Product[];
    let total: number;
-   if (supabase && !preview) {
+   if (loadPublishedMarketplace) {
+     const {products} = await loadPublishedMarketplace();
+     const catalogue = products.filter(product => product.brand_slug === req.params.slug);
+     total = catalogue.length;
+     rows = catalogue.slice(offset, offset + PAGE_SIZE);
+   } else if (supabase && !preview) {
      const {data: brand, error: brandError} = await supabase.from('brands').select('name')
        .eq('slug', req.params.slug).eq('active', true).maybeSingle();
      if (brandError) throw brandError;
@@ -48,7 +74,7 @@ app.get('/api/v1/brands/:slug/catalogue', async (req, res) => {
      rows = data as Product[];
      total = count ?? 0;
    } else {
-     const catalogue = (preview?.products ?? demo).filter(product =>
+     const catalogue = localProducts.filter(product =>
        (product.brand_slug ?? product.brand.toLowerCase().replace(/[^a-z0-9]+/g, '-')) === req.params.slug);
      total = catalogue.length;
      rows = catalogue.sort((a, b) => a.id.localeCompare(b.id)).slice(offset, offset + PAGE_SIZE);
@@ -93,7 +119,7 @@ app.post('/api/v1/search',async(req,res)=>{
  for(const key of ['category','colour','size','theme','fit'] as const) if(typeof requested[key]==='string'&&requested[key].length<=40) filters[key]=requested[key]||undefined;
  if (typeof requested.colour === 'string' && requested.colour.length <= 40) delete filters.colours;
  if(typeof requested.brand==='string'&&requested.brand.length<=80){
-  if(preview){filters.brand=preview.products.find(p=>(p as Product & {brand_slug:string}).brand_slug===requested.brand)?.brand??requested.brand;}
+  if(preview || loadPublishedMarketplace){filters.brand=requested.brand;}
   else if(supabase){const {data,error}=await supabase.from('brands').select('name').eq('slug',requested.brand).maybeSingle();if(error){res.status(503).json({error:'Brands are temporarily unavailable.'});return;} if(!data){res.json({mode:'catalogue',filters,...search([],filters,page,sort),coverage:'No published products for this brand.'});return;} filters.brand=data.name;}
   else filters.brand=demo.find(p=>p.brand.toLowerCase().replace(/[^a-z0-9]+/g,'-')===requested.brand)?.brand??requested.brand;
  }
@@ -106,6 +132,12 @@ app.post('/api/v1/search',async(req,res)=>{
    res.status(422).json({error:'Choose a budget between ₹1 and ₹10,00,000.'}); return;
  }
  try {
+  if (loadPublishedMarketplace) {
+    const {products, index} = await loadPublishedMarketplace();
+    res.json({mode:'catalogue', filters, corrections, ...search(products, filters, page, sort, favouriteBrands, index),
+      coverage:'Published catalogue. Check the brand for current details.'});
+    return;
+  }
   if(supabase&&!preview){
    if (filters.colours || filters.materials || filters.excludedMaterials || filters.sku) {
      res.status(422).json({error:'This requirement needs catalogue fields that are still in private review.'});

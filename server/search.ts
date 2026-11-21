@@ -2,7 +2,9 @@ import categoryRegistry from '../catalogue-categories.json';
 import { fibreNames } from './shopper-query';
 
 type Composition = { materials: string[]; complete?: boolean };
-export type Variant = { id: string; size: string | null; colour: string | null; price_minor: number; available: boolean | null; price_checked_at?: string | null; stock_checked_at?: string | null; preorder?: boolean | null; fulfilment_status?: string | null; source_sku?: string | null; composition?: Composition };
+export type OfferState = 'ready' | 'last_seen' | 'review_pending' | 'unavailable' | 'preorder' | 'unknown';
+export type Variant = { id: string; size: string | null; colour: string | null; price_minor: number | null; available: boolean | null; observed_at?: string | null; price_checked_at?: string | null; stock_checked_at?: string | null; preorder?: boolean | null; fulfilment_status?: string | null; offer_state?: OfferState | null; source_sku?: string | null; composition?: Composition };
+type PricedVariant = Variant & {price_minor: number};
 export type Audience = 'men' | 'women' | 'unisex';
 export type Product = { id: string; brand: string; brand_slug?: string; title: string; description_text?: string | null; category: string; fit: string | null; fits?: string[]; themes: string[]; print_themes?: string[]; theme_evidence: string | null; variants: Variant[]; observed_at: string | null; image_url: string | null; source_url: string | null; synthetic: boolean; audience?: Audience | null; audiences?: Audience[]; audience_evidence?: {audience: Audience; field: 'tag' | 'title'; value: string} | null; garment_colour_evidence?: {value_text: string; excerpt: string}; composition?: Composition; collection_labels?: string[]; search_tags?: string[]; accepted_search_terms?: string[] };
 export type Filters = { brand?: string; audience?: Audience; category?: string; colour?: string; colours?: string[]; size?: string; theme?: string; printTheme?: string; fit?: string; budget?: number; budgetExclusive?: boolean; priceMode?: 'item' | 'delivered'; title?: string; design?: string[]; materials?: string[]; excludedMaterials?: string[]; sku?: string };
@@ -100,14 +102,14 @@ function matchesProduct(product: Product, filters: Filters) {
     (!filters.printTheme || product.print_themes?.includes(filters.printTheme));
 }
 
-export function eligibleVariants(product: Product, filters: Filters): Variant[] {
+export function eligibleVariants(product: Product, filters: Filters): PricedVariant[] {
   if (!matchesProduct(product, filters)) return [];
   const colours = filters.colours ?? (filters.colour ? [filters.colour] : []);
   const colourKeys = new Set(colours.map(colourKey));
-  return product.variants.filter(variant => {
+  return product.variants.filter((variant): variant is PricedVariant => {
     const colour = variant.colour ?? product.garment_colour_evidence?.value_text;
     const composition = variant.composition ?? product.composition;
-    return variant.available === true && Number.isSafeInteger(variant.price_minor) && variant.price_minor >= 0 &&
+    return variant.available === true && variant.price_minor !== null && Number.isSafeInteger(variant.price_minor) && variant.price_minor >= 0 &&
       (!filters.size || (!!variant.size && sizeKey(variant.size) === sizeKey(filters.size))) &&
       (!colourKeys.size || (!!colour && colourKeys.has(colourKey(colour)))) &&
       (filters.budget === undefined || variant.price_minor <= filters.budget - Number(!!filters.budgetExclusive)) &&
@@ -154,6 +156,7 @@ export function search(products: Product[], filters: Filters, page = 1, sort: So
   const now = Date.now();
   const isCurrent = (variant: Variant, synthetic: boolean) => {
     if (synthetic) return true;
+    if (variant.offer_state && variant.offer_state !== 'ready') return false;
     const times = [variant.price_checked_at, variant.stock_checked_at].map(value => value ? Date.parse(value) : NaN);
     return times.every(time => Number.isFinite(time) && time <= now && now - time <= 72 * 60 * 60 * 1000)
       && variant.preorder === false && variant.fulfilment_status === 'ready';

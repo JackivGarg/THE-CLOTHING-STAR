@@ -6,7 +6,7 @@ import './discovery.css';
 import {Garment} from './Garment';
 import {BrandWorld} from './BrandWorld';
 
-type Variant = {id?: string; size: string | null; colour: string | null; price_minor: number; available?: boolean | null; source_options?: Record<string, string>; observed_at?: string | null};
+type Variant = {id?: string; size: string | null; colour: string | null; price_minor: number; available?: boolean | null; source_options?: Record<string, string>; observed_at?: string | null; offer_state?: 'ready' | 'last_seen' | 'review_pending' | 'unavailable' | 'preorder' | 'unknown'};
 type Audience = 'men' | 'women' | 'unisex';
 type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean; audience?: Audience | null; audiences?: Audience[]; match_reason?: string};
 type Results = {mode: string; filters: Record<string, string | number | boolean | string[]>; confirmed: Product[]; unknownDelivery: Product[]; lastSeen: Product[]; coverage: string; total: number; page: number; hasMore: boolean; corrections?: {from: string; to: string}[]};
@@ -29,6 +29,20 @@ const money = (minor: number) => '₹' + (minor / 100).toLocaleString('en-IN');
 const motion = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
 const sameChoice = (left: Product, right: Product) =>
   left.id === right.id && left.selected_variant.id === right.selected_variant.id;
+
+function OfferCheck({product}: {product: Product}) {
+  const variant = product.selected_variant;
+  const observed = variant.observed_at ?? product.observed_at;
+  const time = observed ? new Date(observed) : null;
+  const status = variant.offer_state === 'unknown' ? 'Fulfilment unverified'
+    : variant.offer_state === 'review_pending' ? 'Newer check pending review'
+    : variant.offer_state === 'preorder' ? 'Preorder'
+    : variant.offer_state === 'unavailable' ? 'Recorded unavailable' : null;
+  return <p className="checked-time">{time && Number.isFinite(time.valueOf()) ?
+    <>Last checked <time dateTime={time.toISOString()}>{time.toLocaleString('en-IN', {
+      day:'numeric', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', timeZone:'Asia/Kolkata', timeZoneName:'short',
+    })}</time></> : 'Stock date unavailable'}{status && <> · {status}</>}</p>;
+}
 
 function Arrow() {
   return <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.5"/></svg>;
@@ -101,7 +115,7 @@ function ProductCard({product, added, full, toggle, saved, toggleSaved}: {produc
     <p className="product-price">{money(variant.price_minor)} <small>item price</small></p>
     <p className="variant-info">{variant.size ? 'Size ' + variant.size : 'Size unknown'} · {variant.colour || 'Colour unknown'}</p>
     {variant.source_options && Object.keys(variant.source_options).length > 1 && <p className="variant-info">{Object.entries(variant.source_options).map(([name,value]) => name + ': ' + value).join(' · ')}</p>}
-    <p className="checked-time">{(variant.observed_at ?? product.observed_at) ? 'Last observed ' + new Date((variant.observed_at ?? product.observed_at)!).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'}) : 'Stock date unavailable'}</p>
+    <OfferCheck product={product}/>
     {product.source_url && !product.synthetic && <p className="checked-time">Confirm your options and availability on the brand’s site.</p>}
     <div className="result-actions">
       {product.source_url && !product.synthetic && <a className="merchant-link" href={product.source_url} target="_blank" rel="noopener noreferrer">View at brand <Arrow/></a>}
@@ -411,6 +425,7 @@ function App() {
         <span>{product.brand}</span><h3>{product.title}</h3><b>{money(product.selected_variant.price_minor)}</b>
         <p>{product.selected_variant.size || 'Size unknown'} · {product.selected_variant.colour || 'Colour unknown'}</p>
         {product.selected_variant.source_options && <p>{Object.entries(product.selected_variant.source_options).map(([name,value]) => name + ': ' + value).join(' · ')}</p>}
+        <OfferCheck product={product}/>
         <small>Delivery / returns: check brand</small>
         {product.source_url && <a href={product.source_url} target="_blank" rel="noopener noreferrer">View at brand <Arrow/></a>}
       </article>)}</div>
