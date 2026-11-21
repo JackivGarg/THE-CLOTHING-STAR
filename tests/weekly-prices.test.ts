@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {summarizeWeeklyPrices, type WeeklySnapshot} from '../server/weekly-prices';
+import {prepareWeeklySnapshot, summarizeWeeklyPrices, type WeeklySnapshot} from '../server/weekly-prices';
 
 function snapshot(weekStart: string, priceMinor: number, count = 30): WeeklySnapshot {
   return {
@@ -57,4 +57,28 @@ test('checks outside the actual 48-hour observation window do not qualify', () =
   const current = snapshot('2026-11-09', 120000, 10);
   current.variants[0].checkedAt = '2026-11-11T09:00:00+05:30';
   assert.equal(summarizeWeeklyPrices(previous, current, 'category').pairedProducts, 9);
+});
+
+test('weekly preparation uses accepted in-window offers and retains missing denominator variants', () => {
+  const original = snapshot('2026-11-02', 150000, 10);
+  const inScope = original.variants.map(({productId, variantId, active}) => ({productId, variantId, active}));
+  const manifest = {
+    weekStart:original.weekStart, scopeKey:'fixture/hoodie', methodVersion:'1', accepted:true, inScope,
+    observations:[
+      ...original.variants.slice(0, 9).map(variant => ({...variant, reviewStatus:'accepted'})),
+      {...original.variants[0], reviewStatus:'pending', priceMinor:1, checkedAt:'2026-11-02T15:00:00+05:30'},
+      {...original.variants[1], reviewStatus:'accepted', priceMinor:1, checkedAt:'2026-11-04T08:00:00+05:30'},
+    ],
+  };
+  const created = prepareWeeklySnapshot(manifest);
+  assert.equal(created.variants.length, 10);
+  assert.equal(created.variants[0].priceMinor, 150000);
+  assert.equal(created.variants[1].priceMinor, 150000);
+  assert.equal(created.variants[9].priceMinor, null);
+  assert.equal(created.variants[9].active, true);
+  assert.throws(() => prepareWeeklySnapshot({...manifest, weekStart:'2026-11-03'}), /Monday/);
+  assert.deepEqual(prepareWeeklySnapshot({...manifest, observations:[...manifest.observations].reverse()}), created);
+  assert.throws(() => prepareWeeklySnapshot({...manifest, observations:[
+    ...manifest.observations, {...manifest.observations[0], priceMinor:500},
+  ]}), /Conflicting/);
 });

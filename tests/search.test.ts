@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { hasMultipleChoices,parseQuery,search,unsupportedQuery } from '../server/search';
 import { demo } from '../server/demo';
-test('parses a concrete request and money correctly',()=>{assert.deepEqual(parseQuery('black hoodies with racing prints under 1.5k size M'),{priceMode:'delivered',category:'hoodie',colour:'black',theme:'racing',printTheme:'racing',budget:150000,size:'M'});});
+import { interpretQuery } from '../server/shopper-query';
+test('parses a concrete request and money correctly',()=>{assert.deepEqual(parseQuery('black hoodies with racing prints under 1.5k size M'),{priceMode:'delivered',category:'hoodie',colour:'black',theme:'racing',printTheme:'racing',budget:150000,budgetExclusive:true,size:'M'});});
 test('unknown delivery cannot satisfy a delivered budget',()=>{const result=search(demo,parseQuery('black racing hoodie under 1500 size M'));assert.equal(result.confirmed.length,0);assert.equal(result.unknownDelivery.length,2);});
 test('size and colour must match the same available variant',()=>{const result=search(demo,{category:'hoodie',colour:'black',size:'L',priceMode:'item'});assert.deepEqual(result.confirmed.map(p=>p.id),['sample-3']);});
 test('unavailable stock does not pass',()=>{const p=structuredClone(demo[0]);p.variants[0].available=null;assert.equal(search([p],{size:'M'}).confirmed.length,0);});
@@ -149,4 +150,56 @@ test('explicitly extracted garment fits can satisfy a fit filter', () => {
   const product = {...demo[0], fit:null, fits:['oversized','boxy']};
   assert.equal(search([product], {fit:'oversized'}).total, 1);
   assert.equal(search([{...product, fits:[]}], {fit:'oversized'}).total, 0);
+});
+
+test('corrects a garment typo while preserving exact SKUs, measurements and budget bounds', () => {
+  const query = interpretQuery('black or grey hoodi size M under 1500');
+  assert.deepEqual(query.corrections, [{from:'hoodi', to:'hoodie'}]);
+  assert.deepEqual(query.options.colours, ['black','grey']);
+  assert.equal(interpretQuery('HD-42 size hoodi').corrections.length, 0);
+  const product = {...demo[0], variants:[
+    {...demo[0].variants[0], id:'equal', colour:'black', price_minor:150000, source_sku:'HD-42-B'},
+    {...demo[0].variants[0], id:'eligible', colour:'grey', price_minor:149999, source_sku:'HD-42-G'},
+  ]};
+  const result = search([product], {...parseQuery(query.remaining), ...query.options, priceMode:'item'});
+  assert.equal(result.confirmed[0].selected_variant.id, 'eligible');
+  assert.deepEqual(result.facets.colour, {grey:1});
+  const exact = search([product], {sku:'hd-42-b'});
+  assert.equal(exact.confirmed[0].selected_variant.id, 'equal');
+  assert.equal(search([product], {sku:'HD-42'}).total, 0);
+});
+
+test('needs variant composition evidence for cotton and complete evidence for excluded fibres', () => {
+  const request = interpretQuery('cotton hoodie without polyester size M');
+  const filters = {...parseQuery(request.remaining), ...request.options};
+  const variant = {...demo[0].variants[0], size:'M'};
+  const product = {...demo[0], description_text:'Looks like cotton'};
+  assert.equal(search([{...product, variants:[variant]}], filters).total, 0);
+  assert.equal(search([{...product, variants:[{...variant, composition:{materials:['cotton']}}]}], filters).total, 0);
+  assert.equal(search([{...product, variants:[{...variant, composition:{materials:['cotton'],complete:true}}]}], filters).total, 1);
+  assert.equal(search([{...product, composition:{materials:['cotton'],complete:true}, variants:[
+    {...variant, composition:{materials:['cotton','polyester'],complete:true}},
+  ]}], filters).total, 0);
+});
+
+test('indexes reviewed sections and tags with an attributable match reason', () => {
+  const base = {...demo[0], title:'Core Hoodie', description_text:null};
+  const products = [
+    {...base, id:'tagged', search_tags:['horizon']},
+    {...base, id:'section', collection_labels:['Horizon Capsule']},
+    {...base, id:'exact', title:'Horizon Hoodie'},
+  ];
+  const result = search(products, parseQuery('horizon hoodie'));
+  assert.deepEqual(result.confirmed.map(p => [p.id,p.match_reason]), [
+    ['exact','Product name'], ['section','Verified section'], ['tagged','Merchant tags'],
+  ]);
+});
+
+test('related design retrieval excludes delivery copy and loose campaign tags', () => {
+  const base = {...demo[0], title:'Core Hoodie'};
+  const products = [
+    {...base, id:'shipping', description_text:'Lightning fast shipping.', search_tags:['lightning']},
+    {...base, id:'graphic', description_text:'Lightning artwork printed across the back.'},
+  ];
+  assert.deepEqual(search(products, parseQuery('thunder hoodie')).confirmed.map(p => p.id), ['graphic']);
 });

@@ -9,7 +9,7 @@ import {BrandWorld} from './BrandWorld';
 type Variant = {id?: string; size: string | null; colour: string | null; price_minor: number; available?: boolean | null; source_options?: Record<string, string>; observed_at?: string | null};
 type Audience = 'men' | 'women' | 'unisex';
 type Product = {id: string; brand: string; title: string; category?: string; source_url?: string | null; image_url?: string | null; observed_at?: string | null; selected_variant: Variant; synthetic?: boolean; audience?: Audience | null; audiences?: Audience[]; match_reason?: string};
-type Results = {mode: string; filters: Record<string, string | number>; confirmed: Product[]; unknownDelivery: Product[]; lastSeen: Product[]; coverage: string; total: number; page: number; hasMore: boolean};
+type Results = {mode: string; filters: Record<string, string | number | boolean | string[]>; confirmed: Product[]; unknownDelivery: Product[]; lastSeen: Product[]; coverage: string; total: number; page: number; hasMore: boolean; corrections?: {from: string; to: string}[]};
 type Brand = {slug: string; name: string; product_count?: number};
 type Style = Pick<Product, 'id' | 'title' | 'category' | 'image_url' | 'source_url' | 'observed_at'> & {
   last_stock: 'some_available' | 'unavailable' | 'unknown';
@@ -252,10 +252,14 @@ function App() {
   const shown = (result?.confirmed.length ?? 0) + (result?.unknownDelivery.length ?? 0) + (result?.lastSeen.length ?? 0);
   const pendingEdits = submitted && Object.keys(initial).some(key => form[key as keyof SearchForm] !== submitted[key as keyof SearchForm]);
   const chips = result ? Object.entries(result.filters).flatMap(([key,value]) => {
-    if (value == null || key === 'priceMode') return [];
-    if (key === 'budget') return ['Up to ' + money(Number(value)) + (result.filters.priceMode === 'item' ? ' item price' : ' delivered')];
+    if (value == null || key === 'priceMode' || key === 'budgetExclusive' || (key === 'colour' && result.filters.colours)) return [];
+    if (key === 'budget') return [(result.filters.budgetExclusive ? 'Under ' : 'Up to ') + money(Number(value)) + (result.filters.priceMode === 'item' ? ' item price' : ' delivered')];
     if (key === 'size') return ['Size ' + value];
-    if (key === 'category') return [categories[value] ?? String(value)];
+    if (key === 'category') return [categories[String(value)] ?? String(value)];
+    if (key === 'colours' && Array.isArray(value)) return [value.join(' or ')];
+    if (key === 'materials' && Array.isArray(value)) return value;
+    if (key === 'excludedMaterials' && Array.isArray(value)) return value.map(material => 'Without ' + material);
+    if (key === 'sku') return ['SKU ' + value];
     if (key === 'audience') return [value === 'unisex' ? 'Unisex' : (audiences[value as Audience] ?? value) + ' + unisex'];
     if (key === 'title') return ['Name: ' + value];
     if (key === 'printTheme') return [String(value) + ' print'];
@@ -345,10 +349,11 @@ function App() {
             </select>
           </label></div>}
         </div>
+        {!!result?.corrections?.length && <p>Showing results for {result.corrections.map(correction => correction.to).join(', ')}.</p>}
         {chips.length > 0 && <div className="filter-chips" aria-label="Applied filters">{chips.map((chip,index) => <span key={chip+index}>{chip}</span>)}</div>}
         {result && submitted?.sort === 'recommended' && result.total > 0 && <details className="ranking-note">
           <summary>Why these items first?</summary>
-          <p>Every item meets the applied filters. Direct audience and product name matches lead. Followed brands are preferred among equally relevant items, then items with more recorded details. The first page brings in different brands among equally relevant matches.</p>
+          <p>Search uses product names, descriptions and available catalogue evidence. Direct matches appear before related designs within each availability group. Followed brands can move higher among equally relevant matches.</p>
         </details>}
         {pendingEdits && <p className="source-notice">You’ve changed the filters. Search again to update these results.</p>}
         {result?.confirmed.length ? cards(result.confirmed) : null}

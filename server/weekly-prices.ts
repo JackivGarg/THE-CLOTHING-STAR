@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto';
+
 export type WeeklyVariant = {
   productId: string;
   variantId: string;
@@ -15,6 +17,66 @@ export type WeeklySnapshot = {
   accepted: boolean;
   variants: WeeklyVariant[];
 };
+
+type WeeklySourceManifest = {
+  weekStart: string;
+  scopeKey: string;
+  methodVersion: string;
+  accepted: boolean;
+  inScope: Pick<WeeklyVariant, 'productId' | 'variantId' | 'active'>[];
+  observations: (WeeklyVariant & {reviewStatus: string})[];
+};
+
+function weekWindow(weekStart: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) throw new Error('Use a Monday date in YYYY-MM-DD format');
+  const date = new Date(weekStart + 'T00:00:00Z');
+  if (date.getUTCDay() !== 1 || date.toISOString().slice(0, 10) !== weekStart) {
+    throw new Error('Use a valid Monday as the week start');
+  }
+  const start = Date.parse(weekStart + 'T08:00:00+05:30');
+  return [start, start + 2 * 86400000] as const;
+}
+
+export function prepareWeeklySnapshot(manifest: WeeklySourceManifest): WeeklySnapshot {
+  const {weekStart, scopeKey, methodVersion, accepted, inScope, observations} = manifest;
+  if (!scopeKey?.trim() || !methodVersion?.trim() || typeof accepted !== 'boolean' || !inScope.length) {
+    throw new Error('A reviewed, dated scope and nonempty variant denominator are required');
+  }
+  const [start, end] = weekWindow(weekStart);
+  const key = (row: Pick<WeeklyVariant, 'productId' | 'variantId'>) => {
+    if (!row.productId || !row.variantId) throw new Error('Product and variant identity are required');
+    return JSON.stringify([row.productId, row.variantId]);
+  };
+  const scope = new Map<string, WeeklyVariant>();
+  for (const variant of inScope) {
+    if (typeof variant.active !== 'boolean' || scope.has(key(variant))) throw new Error('Invalid or duplicate scope variant');
+    scope.set(key(variant), {...variant, priceMinor:null, currency:null, preorder:null, checkedAt:''});
+  }
+  const sightings = new Map<string, string>();
+  for (const observation of observations) {
+    const id = key(observation);
+    if (!scope.has(id)) throw new Error('Observation is outside the configured scope');
+    const checked = Date.parse(observation.checkedAt);
+    if (observation.reviewStatus !== 'accepted' || !Number.isFinite(checked) || checked < start || checked >= end) continue;
+    const {priceMinor, currency, preorder, active} = observation;
+    if (typeof active !== 'boolean' || (preorder !== null && typeof preorder !== 'boolean') ||
+        (priceMinor !== null && (!Number.isSafeInteger(priceMinor) || priceMinor < 0)) ||
+        (currency !== null && !/^[A-Z]{3}$/.test(currency))) throw new Error('Invalid accepted offer');
+    const fact = JSON.stringify([priceMinor, currency, preorder, active]);
+    const timestamp = JSON.stringify([id, checked]);
+    if (sightings.has(timestamp) && sightings.get(timestamp) !== fact) throw new Error('Conflicting accepted offers for the same check time');
+    sightings.set(timestamp, fact);
+    const previous = scope.get(id)!;
+    if (!previous.checkedAt || checked > Date.parse(previous.checkedAt)) {
+      scope.set(id, {...previous, priceMinor:active ? priceMinor : null, currency, preorder, checkedAt:new Date(checked).toISOString()});
+    }
+  }
+  return {
+    weekStart, methodVersion, accepted,
+    scopeHash:createHash('sha256').update(scopeKey.trim()).digest('hex'),
+    variants:[...scope.entries()].sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0).map(([, variant]) => variant),
+  };
+}
 
 export type WeeklyPriceSummary = {
   comparable: boolean;
