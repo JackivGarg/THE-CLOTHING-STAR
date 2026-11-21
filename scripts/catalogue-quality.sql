@@ -4,6 +4,7 @@ with latest as (
     c.brand_id, s.external_product_id, s.payload, s.observed_at
   from public.staged_catalogue_records s
   join public.source_configs c on c.id=s.source_config_id
+  where s.external_variant_id is distinct from '__OFFER_ONLY__'
   order by c.brand_id,s.external_product_id,s.observed_at desc,s.id desc
 ), products as (
   select brand_id,count(*) detailed_products,
